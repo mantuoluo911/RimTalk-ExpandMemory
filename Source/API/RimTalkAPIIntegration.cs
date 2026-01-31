@@ -72,7 +72,12 @@ namespace RimTalk.Memory.API
                 RegisterPromptEntry();
                 
                 Log.Message("[MemoryPatch] ✓ Integrated via RimTalk API v4.0+");
-                Log.Message("[MemoryPatch]   - Registered {{pawn.memory}} variable");
+                Log.Message("[MemoryPatch]   - Registered {{pawn.memory}} variable (combined memories)");
+                Log.Message("[MemoryPatch]   - Registered {{pawn.ABM}} variable (active buffer - raw)");
+                Log.Message("[MemoryPatch]   - Registered {{pawn.ELS}} variable (event log - raw)");
+                Log.Message("[MemoryPatch]   - Registered {{pawn.CLPA}} variable (archive - raw)");
+                Log.Message("[MemoryPatch]   - Registered {{pawn.matchELS}} variable (event log - matched)");
+                Log.Message("[MemoryPatch]   - Registered {{pawn.matchCLPA}} variable (archive - matched)");
                 Log.Message("[MemoryPatch]   - Registered {{knowledge}} variable");
                 Log.Message("[MemoryPatch]   - Added PromptEntry: " + ENTRY_NAME);
             }
@@ -147,7 +152,7 @@ namespace RimTalk.Memory.API
         /// </summary>
         private static void RegisterVariables()
         {
-            // 1. 注册 {{pawn.memory}} - Pawn 变量
+            // 1. 注册 {{pawn.memory}} - Pawn 变量（综合记忆）
             // 使用 Func<Pawn, string> 委托
             var registerPawnVar = _promptAPIType.GetMethod("RegisterPawnVariable");
             if (registerPawnVar != null)
@@ -158,10 +163,10 @@ namespace RimTalk.Memory.API
                     Func<Pawn, string> memoryProvider = MemoryVariableProvider.GetPawnMemory;
                     
                     // 调用 RegisterPawnVariable(modId, variableName, provider, description, priority)
-                    registerPawnVar.Invoke(null, new object[] 
-                    { 
-                        MOD_ID, 
-                        "memory", 
+                    registerPawnVar.Invoke(null, new object[]
+                    {
+                        MOD_ID,
+                        "memory",
                         memoryProvider,
                         "Character's personal memories and experiences",
                         100 // priority
@@ -176,9 +181,129 @@ namespace RimTalk.Memory.API
                 {
                     Log.Warning($"[MemoryPatch] Failed to register pawn.memory: {ex.Message}");
                 }
+                
+                // 2. 注册 {{pawn.ABM}} - ABM 层记忆（超短期记忆）
+                try
+                {
+                    Func<Pawn, string> abmProvider = MemoryVariableProvider.GetPawnABM;
+                    
+                    registerPawnVar.Invoke(null, new object[]
+                    {
+                        MOD_ID,
+                        "ABM",
+                        abmProvider,
+                        "Character's active buffer memories (recent conversations)",
+                        100
+                    });
+                    
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[MemoryPatch] ✓ Registered {{pawn.ABM}} variable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[MemoryPatch] Failed to register pawn.ABM: {ex.Message}");
+                }
+                
+                // 3. 注册 {{pawn.ELS}} - ELS 层记忆（中期记忆）
+                try
+                {
+                    Func<Pawn, string> elsProvider = MemoryVariableProvider.GetPawnELS;
+                    
+                    registerPawnVar.Invoke(null, new object[]
+                    {
+                        MOD_ID,
+                        "ELS",
+                        elsProvider,
+                        "Character's event log summary (mid-term memories)",
+                        100
+                    });
+                    
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[MemoryPatch] ✓ Registered {{pawn.ELS}} variable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[MemoryPatch] Failed to register pawn.ELS: {ex.Message}");
+                }
+                
+                // 4. 注册 {{pawn.CLPA}} - CLPA 层记忆（长期记忆）
+                try
+                {
+                    Func<Pawn, string> clpaProvider = MemoryVariableProvider.GetPawnCLPA;
+                    
+                    registerPawnVar.Invoke(null, new object[]
+                    {
+                        MOD_ID,
+                        "CLPA",
+                        clpaProvider,
+                        "Character's persona archive (long-term memories)",
+                        100
+                    });
+                    
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[MemoryPatch] ✓ Registered {{pawn.CLPA}} variable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[MemoryPatch] Failed to register pawn.CLPA: {ex.Message}");
+                }
+                
+                // 5. 注册 {{pawn.matchELS}} - 匹配后的 ELS 层记忆
+                try
+                {
+                    Func<Pawn, string> matchElsProvider = MemoryVariableProvider.GetPawnMatchELS;
+                    
+                    registerPawnVar.Invoke(null, new object[]
+                    {
+                        MOD_ID,
+                        "matchELS",
+                        matchElsProvider,
+                        "Context-matched event log memories (mid-term)",
+                        100
+                    });
+                    
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[MemoryPatch] ✓ Registered {{pawn.matchELS}} variable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[MemoryPatch] Failed to register pawn.matchELS: {ex.Message}");
+                }
+                
+                // 6. 注册 {{pawn.matchCLPA}} - 匹配后的 CLPA 层记忆
+                try
+                {
+                    Func<Pawn, string> matchClpaProvider = MemoryVariableProvider.GetPawnMatchCLPA;
+                    
+                    registerPawnVar.Invoke(null, new object[]
+                    {
+                        MOD_ID,
+                        "matchCLPA",
+                        matchClpaProvider,
+                        "Context-matched archive memories (long-term)",
+                        100
+                    });
+                    
+                    if (Prefs.DevMode)
+                    {
+                        Log.Message("[MemoryPatch] ✓ Registered {{pawn.matchCLPA}} variable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[MemoryPatch] Failed to register pawn.matchCLPA: {ex.Message}");
+                }
             }
             
-            // 2. 注册 {{knowledge}} - Context 变量
+            // 7. 注册 {{knowledge}} - Context 变量
             var registerCtxVar = _promptAPIType.GetMethod("RegisterContextVariable");
             if (registerCtxVar != null)
             {
