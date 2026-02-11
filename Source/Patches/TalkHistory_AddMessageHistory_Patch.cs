@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using RimTalk;
 using RimTalk.Data;
+using RimTalk.MemoryPatch;
 using RimTalk.Service;
 using System;
 using System.Collections.Generic;
@@ -15,9 +16,11 @@ namespace RimTalk.Memory.Patches
     [HarmonyPatch(typeof(TalkService), "AddResponsesToHistory")]
     public static class TalkHistory_AddMessageHistory_Patch
     {
+        public static bool IsEnabled => RimTalkMemoryPatchMod.Settings?.IsRoundMemoryActive ?? false; // 通过设置控制启用
         [HarmonyPostfix]
         static void Postfix(List<TalkResponse> responses)
         {
+            if (!IsEnabled) return;
             // 异步回调可能在存档退出后触发，此时 Game 为 null
             if (Current.Game == null) return;
 

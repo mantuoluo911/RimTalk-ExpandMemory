@@ -15,14 +15,16 @@ namespace RimTalk.MemoryPatch.Patches
     ///
     /// 保留此文件仅用于参考，Patch 功能已禁用
     /// </summary>
-    // [HarmonyPatch] // ⭐ v4.0: 禁用此 Patch
-    public static class RimTalkConversationCapturePatch_DEPRECATED
+    [HarmonyPatch] // ⭐ v4.0: 禁用此 Patch
+    // 重新启用并用开关控制
+    public static class RimTalkConversationCapturePatch
     {
         // 缓存已处理的对话，避免重复记录
         private static HashSet<string> processedConversations = new HashSet<string>();
         private static int lastCleanupTick = 0;
         private const int CleanupInterval = 2500; // 约1小时游戏时间
-        
+        public static bool IsEnabled => !RimTalkMemoryPatchMod.Settings?.IsRoundMemoryActive ?? true; // 通过设置控制启用
+
         // 目标方法：PlayLogEntry_RimTalkInteraction的构造函数
         [HarmonyTargetMethod]
         public static System.Reflection.MethodBase TargetMethod()
@@ -71,6 +73,7 @@ namespace RimTalk.MemoryPatch.Patches
         [HarmonyPostfix]
         public static void Postfix(object __instance)
         {
+            if (!IsEnabled) return; // 如果启用了轮次记忆，则跳过逐条对话捕获
             try
             {
                 // 使用反射获取字段

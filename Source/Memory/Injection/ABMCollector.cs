@@ -23,6 +23,7 @@ namespace RimTalk.Memory.Injection
         /// <param name="pawn">目标 Pawn</param>
         /// <param name="maxRounds">最大采集轮数</param>
         /// <returns>采集到的记忆列表</returns>
+        public static bool IsRoundMemoryEnabled => RimTalkMemoryPatchMod.Settings?.IsRoundMemoryActive ?? false; // 不启用轮次记忆时不注入轮次记忆
         public static List<MemoryEntry> Collect(Pawn pawn, int maxRounds)
         {
             var result = new List<MemoryEntry>();
@@ -73,6 +74,7 @@ namespace RimTalk.Memory.Injection
                 // ⭐ 关键：只对 RoundMemory 类型做去重（与旧代码逻辑一致）
                 if (entry is RoundMemory roundMemory)
                 {
+                    if (!IsRoundMemoryEnabled) continue;
                     // 跨 Pawn 去重
                     if (cache != null && cache.Contains(roundMemory))
                     {
