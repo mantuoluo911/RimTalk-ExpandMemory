@@ -739,6 +739,12 @@ namespace RimTalk.Memory
             {
                 memory.isPinned = pinned;
             }
+            if (memory?.layer == MemoryLayer.Active && memory.isPinned == true) // 固定ABM时自动转移至SCM
+            {
+                memory.layer = MemoryLayer.Situational;
+                SituationalMemories?.Add(memory);
+                ActiveMemories?.Remove(memory);
+            }
         }
         // RoundMemory入口
         public void PinRoundMemory(RoundMemory roundMemory, string memoryId)
