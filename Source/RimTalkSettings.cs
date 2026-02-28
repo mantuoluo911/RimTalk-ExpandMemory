@@ -49,6 +49,7 @@ namespace RimTalk.MemoryPatch
         public int maxEventLogMemories = 50;
 
         public bool IsPlayerDialogueInject = true; // 是否注入玩家发言
+        public bool IsRoundMemoryActive = false; // 是否启用轮次记忆
 
         // ⭐ v4.0: ABM 注入轮数配置
         public int maxABMInjectionRounds = 3;  // 默认注入最近3轮对话
@@ -182,7 +183,9 @@ namespace RimTalk.MemoryPatch
             
             // ⭐ 是否注入玩家发言
             Scribe_Values.Look(ref IsPlayerDialogueInject, "fourLayer_isPlayerDialogueInject", true);
-            
+            // 是否启用轮次记忆
+            Scribe_Values.Look(ref IsRoundMemoryActive, "fourLayer_IsRoundMemoryActive", false);
+
             Scribe_Values.Look(ref scmDecayRate, "fourLayer_scmDecayRate", 0.01f);
             Scribe_Values.Look(ref elsDecayRate, "fourLayer_elsDecayRate", 0.005f);
             Scribe_Values.Look(ref clpaDecayRate, "fourLayer_clpaDecayRate", 0.001f);
@@ -434,7 +437,15 @@ namespace RimTalk.MemoryPatch
                 GUI.color = Color.white;
                 
                 listing.Gap();
-                
+
+                // ⭐ 是否启用轮次记忆
+                listing.CheckboxLabeled("RimTalk_Settings_IsRoundMemoryActive".Translate(), ref IsRoundMemoryActive);
+                GUI.color = Color.gray;
+                listing.Label("  " + "RimTalk_Settings_IsRoundMemoryActiveDesc".Translate());
+                GUI.color = Color.white;
+
+                listing.Gap();
+
                 listing.Label("RimTalk_Settings_MaxInjectedMemoriesLabel".Translate(maxInjectedMemories));
                 maxInjectedMemories = (int)listing.Slider(maxInjectedMemories, 1, 20);
                 

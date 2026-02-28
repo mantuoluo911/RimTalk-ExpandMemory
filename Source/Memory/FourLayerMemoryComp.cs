@@ -187,8 +187,8 @@ namespace RimTalk.Memory
                 return;
             }
 
-            var byType = allMemoriesToSummarize.GroupBy(m => m.type);
-            
+            var byType = allMemoriesToSummarize.GroupBy(m => MemoryType.Conversation); // MemoryType.Conversation即总结得到的ELS的记忆类型，可以根据需要调整为其他类型
+
             foreach (var typeGroup in byType)
             {
                 var memories = typeGroup.ToList();
@@ -738,6 +738,12 @@ namespace RimTalk.Memory
             if (memory != null)
             {
                 memory.isPinned = pinned;
+            }
+            if (memory?.layer == MemoryLayer.Active && memory.isPinned == true) // 固定ABM时自动转移至SCM
+            {
+                memory.layer = MemoryLayer.Situational;
+                SituationalMemories?.Add(memory);
+                ActiveMemories?.Remove(memory);
             }
         }
         // RoundMemory入口
