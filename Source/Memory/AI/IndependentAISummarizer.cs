@@ -505,7 +505,7 @@ namespace RimTalk.Memory.AI
             var memoryListSb = new StringBuilder();
             int maxMemories = (template == "deep_archive") ? 15 : 20;
             int i = 1;
-            foreach (var m in memories.Take(maxMemories))
+            foreach (var m in memories.OrderBy(m => m.timestamp))
             {
                 memoryListSb.AppendLine($"{i}. {m.content}");
                 i++;
