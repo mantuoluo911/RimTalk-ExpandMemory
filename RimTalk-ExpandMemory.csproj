@@ -58,7 +58,7 @@
 
 	<ItemGroup>
 		<!-- Core RimWorld & UnityEngine libraries - 使用 PrivateAssets 让 NuGet 自动处理引用 -->
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="$(GameVersion).*-*" PrivateAssets="All" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" PrivateAssets="All" />
 		<!-- Harmony API -->
 		<PackageReference Include="Lib.Harmony.Ref" Version="2.*" PrivateAssets="All" />
 		<!-- ⭐ 使用稳定版 Roslyn 编译器，兼容 SDK 9 -->
