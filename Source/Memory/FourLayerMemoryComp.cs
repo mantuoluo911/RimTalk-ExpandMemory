@@ -276,8 +276,8 @@ namespace RimTalk.Memory
                 return;
             }
 
-            var byType = allMemoriesToSummarize.GroupBy(m => m.type);
-            
+            var byType = allMemoriesToSummarize.GroupBy(m => MemoryType.Conversation); // MemoryType.Conversation即总结得到的ELS的记忆类型，可以根据需要调整为其他类型
+
             foreach (var typeGroup in byType)
             {
                 var memories = typeGroup.ToList();

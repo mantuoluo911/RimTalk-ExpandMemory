@@ -40,7 +40,8 @@ namespace RimTalk.Memory
             FourLayerMemoryComp memoryComp, 
             string context, 
             int maxMemories,
-            out List<MemoryScore> scores)
+            out List<MemoryScore> scores,
+            MemoryLayer? layer = null) // 新增一个可选参数，用于指定只注入特定层级的记忆（如果需要）
         {
             scores = new List<MemoryScore>();
 
@@ -70,16 +71,19 @@ namespace RimTalk.Memory
             // 提取上下文关键词
             List<string> contextKeywords = ExtractKeywords(context);
 
-            // 收集记忆：跳过超短期记忆(ABM)，只收集SCM、ELS、CLPA
+            // 收集记忆：跳过超短期记忆(ABM)，根据layer参数决定收集SCM、ELS、CLPA
             var allMemories = new List<MemoryEntry>();
-            allMemories.AddRange(memoryComp.SituationalMemories);
-            allMemories.AddRange(memoryComp.EventLogMemories);
-            
+            if (layer == null || layer == MemoryLayer.Situational) allMemories.AddRange(memoryComp.SituationalMemories);
+            if (layer == null || layer == MemoryLayer.EventLog) allMemories.AddRange(memoryComp.EventLogMemories);
+
             // 根据场景决定是否包含归档记忆
             // 社交/事件场景更倾向于包含长期记忆（讲故事模式）
-            if (sceneType == SceneType.Social || sceneType == SceneType.Event || ShouldIncludeArchive(context))
+            if (layer == null || layer == MemoryLayer.Archive)
             {
-                allMemories.AddRange(memoryComp.ArchiveMemories.Take(20));
+                if (sceneType == SceneType.Social || sceneType == SceneType.Event || ShouldIncludeArchive(context))
+                {
+                    allMemories.AddRange(memoryComp.ArchiveMemories.Take(20));
+                }
             }
 
             if (allMemories.Count == 0)
