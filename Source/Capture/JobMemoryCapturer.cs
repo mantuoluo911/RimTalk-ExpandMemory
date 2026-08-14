@@ -133,7 +133,7 @@ namespace RimTalk.Memory.Capture
                 || _jobsToIgnore.Contains(jobDef)
 
                 // build 时额外判断 job 在时间尺度上是否真的“进行”了
-                || Find.TickManager?.TicksGame is not { } currentTick 
+                || Find.TickManager?.TicksGame is not { } currentTick
                 || currentTick == job.startTick
 
                 // 仅殖民者且启用工作记忆捕捉时才激活 capturer
@@ -345,7 +345,16 @@ namespace RimTalk.Memory.Capture
             if (Parent is not Pawn parentPawn) return string.Empty;
 
             // 提取报告
-            var jobReport = job.GetReport(parentPawn);
+            string jobReport = null;
+            try
+            {
+                // 可恶的泰南，原版方法都会 NRE
+                jobReport = job.GetReport(parentPawn);
+            }
+            catch
+            {
+                return string.Empty;
+            }
 
             // 文本无效时跳过后处理，提前返回
             if (string.IsNullOrEmpty(jobReport)) return string.Empty;
