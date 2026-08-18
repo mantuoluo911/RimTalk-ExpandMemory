@@ -48,26 +48,8 @@ public static class MemoryArchiveCommands
     {
         if (source is null) return null;
         MemoryEntry target = EnsurePrivate(comp, source);
-        comp.Maintainer.PinMemory(target, isPinned);
+        comp.Interactor.PinMemory(target, isPinned);
         return target;
-    }
-
-    /// <summary>
-    /// 导入记忆的独立副本，并返回实际写入数量。容量已满的层级会跳过多余条目。
-    /// </summary>
-    public static int Import(FourLayerMemoryComp comp, IEnumerable<MemoryEntry> source)
-    {
-        int imported = 0;
-        foreach (MemoryEntry memory in source?.Where(memory => memory is not null) ?? Enumerable.Empty<MemoryEntry>())
-        {
-            MemoryEntry copy = CloneForImport(memory);
-            if (!HasCapacity(copy.Layer, comp)) continue;
-            comp.Maintainer.AddMemory(copy);
-            if (memory.IsPinned) comp.Maintainer.PinMemory(copy, true);
-            imported++;
-        }
-        SortLayers(comp);
-        return imported;
     }
 
     private static MemoryEntry EnsurePrivate(FourLayerMemoryComp comp, MemoryEntry source)
@@ -79,35 +61,6 @@ public static class MemoryArchiveCommands
         ReplaceReference(comp, source, privateCopy);
         return privateCopy;
     }
-
-    private static MemoryEntry CloneForImport(MemoryEntry source)
-    {
-        // 通过构造新对象获得新的 Id，避免导入副本与原记忆共享总结状态。
-        MemoryEntry copy = new(source.Content, source.Type, source.Layer, source.Importance)
-        {
-            GameTick = source.GameTick,
-            EndGameTick = source.EndGameTick,
-            Activity = source.Activity,
-            relatedPawnId = source.relatedPawnId,
-            relatedPawnName = source.relatedPawnName,
-            location = source.location,
-            Tags = new List<string>(source.Tags ?? new List<string>()),
-            keywords = new List<string>(source.keywords ?? new List<string>()),
-            IsUserEdited = source.IsUserEdited,
-            IsPinned = false,
-            Note = source.Note
-        };
-        return copy;
-    }
-
-    private static bool HasCapacity(MemoryLayer layer, FourLayerMemoryComp comp) => layer switch
-    {
-        MemoryLayer.Active => true,
-        MemoryLayer.Situational => comp.SituationalMemories.Count < RimTalkMemoryPatchMod.Settings.maxSituationalMemories,
-        MemoryLayer.EventLog => comp.EventLogMemories.Count < RimTalkMemoryPatchMod.Settings.maxEventLogMemories,
-        MemoryLayer.Archive => comp.ArchiveMemories.Count < RimTalkMemoryPatchMod.Settings.maxArchiveMemories,
-        _ => false
-    };
 
     private static void ReplaceReference(FourLayerMemoryComp comp, MemoryEntry source, MemoryEntry replacement)
     {
@@ -121,14 +74,5 @@ public static class MemoryArchiveCommands
     {
         int index = list.IndexOf(source);
         if (index >= 0) list[index] = replacement;
-    }
-
-    private static void SortLayers(FourLayerMemoryComp comp)
-    {
-        // MemoryMaintainer 的 ABM 过期扫描依赖列表按 GameTick 升序排列。
-        comp.ActiveMemories.Sort((left, right) => left.GameTick.CompareTo(right.GameTick));
-        comp.SituationalMemories.Sort((left, right) => left.GameTick.CompareTo(right.GameTick));
-        comp.EventLogMemories.Sort((left, right) => left.GameTick.CompareTo(right.GameTick));
-        comp.ArchiveMemories.Sort((left, right) => left.GameTick.CompareTo(right.GameTick));
     }
 }

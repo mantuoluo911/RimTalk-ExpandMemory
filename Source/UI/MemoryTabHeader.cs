@@ -3,6 +3,7 @@ using RimTalk.Memory.Maintenance;
 using RimTalk.Memory.Utils;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 using Verse;
@@ -24,9 +25,9 @@ internal sealed class MemoryTabHeader
     private readonly MemoryTabContext _context;
 
     // 预计算的枚举值列表，供下拉菜单使用
-    private readonly List<MemoryLayer?> _allLayers = EnumUtil.AllEnumValues<MemoryLayer>()?
+    private static readonly List<MemoryLayer?> _allLayers = EnumUtil.AllEnumValues<MemoryLayer>()?
         .Select(layer => (MemoryLayer?)layer).Prepend(null).ToList() ?? new();
-    private readonly List<MemoryType?> _allTypes = EnumUtil.AllEnumValues<MemoryType>()?
+    private static readonly List<MemoryType?> _allTypes = EnumUtil.AllEnumValues<MemoryType>()?
         .Select(type => (MemoryType?)type).Prepend(null).ToList() ?? new();
 
     public MemoryTabHeader(MemoryTabContext context)
@@ -34,6 +35,7 @@ internal sealed class MemoryTabHeader
         if (context is null) throw new ArgumentNullException(nameof(context));
         _context = context;
     }
+
     public void Draw(Rect rect)
     {
         // 绘制背景，控制缩进，初始化 xy 游标
@@ -115,17 +117,30 @@ internal sealed class MemoryTabHeader
 
     private void OpenToolsMenu()
     {
+        var windowStack = Find.WindowStack;
         var memoryComp = _context.MemoryComp;
-        Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption>
-        {
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Knowledge"), () => Find.WindowStack.Add(new Dialog_CommonKnowledge())),
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.CreateMemory"), () => Find.WindowStack.Add(new MemoryCreateDialog(memoryComp))),
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Preview"), () => Find.WindowStack.Add(new Dialog_InjectionPreview())),
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.SummaryPrompt"), () => Find.WindowStack.Add(new Dialog_PromptEditor())),
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Export"), () => MemoryArchiveTransferService.ExportMemories(memoryComp)),
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Import"), () => MemoryArchiveTransferService.OpenImportMenu(memoryComp)),
+        windowStack.Add(new FloatMenu([
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Knowledge"), () => windowStack.Add(new Dialog_CommonKnowledge())),
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.CreateMemory"), () => windowStack.Add(new MemoryCreateDialog(memoryComp))),
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Preview"), () => windowStack.Add(new Dialog_InjectionPreview())),
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.SummaryPrompt"), () => windowStack.Add(new Dialog_PromptEditor())),
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Export"), () => CustomScribe.Export(memoryComp)),
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.Import"), OpenImportMenu),
             new(MemoryArchiveText.Get("RimTalk.Memory.UI.SummarizeAll"), MemorySummarizer.SummarizeAll),
-            new(MemoryArchiveText.Get("RimTalk.Memory.UI.OperationGuide"), () => Find.WindowStack.Add(new Dialog_MessageBox("RimTalk.Memory.UI.Guide".Translate())))
-        }));
+            new(MemoryArchiveText.Get("RimTalk.Memory.UI.OperationGuide"), () => windowStack.Add(new Dialog_MessageBox("RimTalk.Memory.UI.Guide".Translate())))
+        ]));
+    }
+
+    private void OpenImportMenu()
+    {
+        var targetComp = _context.MemoryComp;
+        var windowStack = Find.WindowStack;
+        windowStack.Add(new FloatMenu((CustomScribe.GetImportFiles() ?? [])
+                .Select(path => new FloatMenuOption(Path.GetFileName(path), () => windowStack.Add(Dialog_MessageBox.CreateConfirmation(
+                    "RimTalk.Memory.UI.ConfirmImport".Translate(),
+                    () => CustomScribe.Import(path, targetComp)
+                    ))))
+                .Prepend(new FloatMenuOption("RimTalk.Memory.UI.OpenImportFolder".Translate(), CustomScribe.OpenExportFolder))
+                .ToList()));
     }
 }

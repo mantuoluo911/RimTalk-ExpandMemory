@@ -135,7 +135,7 @@ public sealed class MemoryTabContext
     {
         if (MemoryComp is null) return;
         foreach (MemoryEntry memory in Selection)
-            MemoryComp.Maintainer.Remove(memory);
+            MemoryComp.Interactor.RemoveMemory(memory);
         Selection.Clear();
         FocusedMemory = null;
     }

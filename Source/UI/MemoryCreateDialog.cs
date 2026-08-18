@@ -22,17 +22,16 @@ public sealed class MemoryCreateDialog : Window
     private const float ContentHeight = 150f;
     private const float ButtonWidth = 120f;
 
+    // 所有层级和类型的枚举值列表，供下拉菜单使用
+    private static readonly List<MemoryLayer> _allLayers = EnumUtil.AllEnumValues<MemoryLayer>()?.ToList() ?? new();
+    private static readonly List<MemoryType> _allTypes = [MemoryType.Action, MemoryType.Conversation]; // 暂时只开放 Action 和 Conversation
 
     // 创建记忆的目标组件
     private readonly FourLayerMemoryComp _memoryComp;
 
     // 记忆内容
-    private readonly List<MemoryLayer> _allLayers = EnumUtil.AllEnumValues<MemoryLayer>()?.ToList() ?? new();
     private MemoryLayer _layer = MemoryLayer.Active;
-
-    private readonly List<MemoryType> _allTypes = [MemoryType.Action, MemoryType.Conversation]; // 暂时只开放 Action 和 Conversation
     private MemoryType _type = MemoryType.Conversation;
-
     private string _content = string.Empty;
     private string _tags = string.Empty;
     private string _note = string.Empty;
@@ -156,7 +155,7 @@ public sealed class MemoryCreateDialog : Window
         memory.Tags ??= new();
         memory.Tags.AddRange(_tags.Split([',', '，'], StringSplitOptions.RemoveEmptyEntries).Select(tag => tag.Trim()));
 
-        _memoryComp.Maintainer.AddMemory(memory);
+        _memoryComp.Interactor.AddMemory(memory);
 
         Messages.Message("RimTalk.Memory.UI.Created".Translate(), MessageTypeDefOf.TaskCompletion, false);
         Close();
