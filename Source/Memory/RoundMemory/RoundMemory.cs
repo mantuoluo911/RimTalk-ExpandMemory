@@ -83,12 +83,12 @@ public class RoundMemory : MemoryEntry, IExposable
             relatedPawnId = relatedPawnId,
             relatedPawnName = relatedPawnName,
             location = location,
-            tags = new(tags ?? []),
+            Tags = new(Tags ?? []),
             keywords = new(keywords ?? []),
 
             IsUserEdited = IsUserEdited,
             IsPinned = IsPinned,
-            Notes = Notes,
+            Note = Note,
         };
 
 

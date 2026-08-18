@@ -15,6 +15,9 @@ namespace RimTalk.Memory;
 /// </summary>
 public class MemoryEntry : IExposable
 {
+    // 常量配置
+    public const float DefaultImportance = 0.5f;
+
     // 基本信息
     public long Id = 0;                 // 唯一ID，0 表示未初始化
     // 复制品的原始 Id（目前仅用于 summarizer）
@@ -57,13 +60,13 @@ public class MemoryEntry : IExposable
     public string relatedPawnId;        // 相关小人ID
     public string relatedPawnName;      // 相关小人名字
     public string location;             // 地点
-    public List<string> tags = new();   // 标签（中文）
+    public List<string> Tags = new();   // 标签（中文）
     public List<string> keywords = new();   // 关键词
 
     // 元数据
     public bool IsUserEdited = false;   // 是否被用户编辑过
     public bool IsPinned = false;       // 是否固定（不会被删除）
-    public string Notes;                // 用户备注
+    public string Note;                // 用户备注
 
     /// <summary>
     /// 获取层级名称（中文）
@@ -120,7 +123,7 @@ public class MemoryEntry : IExposable
 
     public MemoryEntry() { }
 
-    public MemoryEntry(string content, MemoryType type, MemoryLayer layer, float importance = 0.5f, string relatedPawn = null)
+    public MemoryEntry(string content, MemoryType type, MemoryLayer layer, float importance = DefaultImportance, string relatedPawn = null)
     {
         Id = GenerateId();
         GameTick = Find.TickManager?.TicksGame ?? -1;
@@ -132,9 +135,6 @@ public class MemoryEntry : IExposable
         Activity = 1f;
         Importance = importance;
         relatedPawnName = relatedPawn;
-
-        // 自动添加类型标签
-        AddTypeTag();
     }
 
     // 存档读写
@@ -173,15 +173,15 @@ public class MemoryEntry : IExposable
         Scribe_Values.Look(ref relatedPawnId, "relatedPawnId");
         Scribe_Values.Look(ref relatedPawnName, "relatedPawnName");
         Scribe_Values.Look(ref location, "location");
-        Scribe_Collections.Look(ref tags, "tags", LookMode.Value);
+        Scribe_Collections.Look(ref Tags, "tags", LookMode.Value);
         Scribe_Collections.Look(ref keywords, "keywords", LookMode.Value);
 
         Scribe_Values.Look(ref IsUserEdited, "isUserEdited", false);
         Scribe_Values.Look(ref IsPinned, "isPinned", false);
-        Scribe_Values.Look(ref Notes, "notes");
+        Scribe_Values.Look(ref Note, "notes");
 
         // 集合型字段应当在读档后进行防空处理
-        tags ??= new();
+        Tags ??= new();
         keywords ??= new();
     }
 
@@ -228,31 +228,6 @@ public class MemoryEntry : IExposable
         return GenerateId();
     }
 
-    private void AddTypeTag()
-    {
-        AddTag(Type switch
-        {
-            MemoryType.Conversation => "对话",
-            MemoryType.Action => "行动",
-            MemoryType.Summarization => "总结",
-            MemoryType.Event => "事件",
-            MemoryType.Emotion => "情绪",
-            MemoryType.Relationship => "关系",
-            MemoryType.Internal => "内部上下文",
-            _ => null
-        });
-    }
-
-    /// <summary>
-    /// 添加标签（中文）
-    /// </summary>
-    public void AddTag(string tag)
-    {
-        if (string.IsNullOrWhiteSpace(tag) || tags.Contains(tag)) return;
-
-        tags.Add(tag);
-    }
-
     /// <summary>
     /// 移除标签
     /// </summary>
@@ -260,7 +235,7 @@ public class MemoryEntry : IExposable
     {
         if (string.IsNullOrWhiteSpace(tag)) return;
 
-        tags.Remove(tag);
+        Tags.Remove(tag);
     }
 
     /// <summary>

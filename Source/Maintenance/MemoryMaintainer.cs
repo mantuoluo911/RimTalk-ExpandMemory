@@ -174,4 +174,17 @@ public class MemoryMaintainer
             | ELSList.RemoveAll(m => m == memory) > 0
             | CLPAList.RemoveAll(m => m == memory) > 0;
     }
+
+    public void AddMemory(MemoryEntry memory)
+    {
+        if (memory is null) return;
+        switch (memory.Layer)
+        {
+            case MemoryLayer.Active: ABMList.Add(memory); return;
+            case MemoryLayer.Situational: SCMList.Add(memory); return;
+            case MemoryLayer.EventLog: ELSList.Add(memory); return;
+            case MemoryLayer.Archive: CLPAList.Add(memory); return;
+            default: return;
+        }
+    }
 }

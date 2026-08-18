@@ -232,7 +232,7 @@ public class FourLayerMemoryComp : ThingComp
         if (!string.IsNullOrEmpty(query.relatedPawn) && memory.relatedPawnName != query.relatedPawn)
             return false;
 
-        if (query.tags.Any() && !query.tags.Any(t => memory.tags.Contains(t)))
+        if (query.tags.Any() && !query.tags.Any(t => memory.Tags.Contains(t)))
             return false;
 
         return true;
