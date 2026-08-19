@@ -14,6 +14,15 @@ namespace RimTalk.Memory.UI;
 public sealed class MemoryChronicle
 {
     // 常量配置
+    private const float TitleHeight = 18f;
+    private const float ChapterGap = 3f;
+
+
+    private const int MaxAxisDayTicks = 6;
+    private const int MaxAxisQuadrumTicks = 9;
+    private const int MaxAxisYearTicks = 12;
+
+
     // 时间轴底栏的固定像素高度（含刻度线与日期文本）。
     private const float AxisHeight = 28f;
     // 篇章视窗允许的最小时间跨度（2 天），防止缩放过细导致刻度拥挤。
@@ -24,83 +33,110 @@ public sealed class MemoryChronicle
 
     private static readonly Color ChapterColor = MemoryArchivePalette.Background(MemoryLayer.Archive);
     private static readonly Color ChapterHoverColor = new(0.36f, 0.24f, 0.44f, 1f);
-    private readonly MemoryTabContext _context;
-    private readonly Cursor _cursor;
-    // 当前可见的篇章列表，每帧由 Refresh() 从 MemoryComp 重建并按标签过滤。
-    private readonly List<MemoryEntry> _chapters = new();
-    // 篇章视窗中心对应的游戏 Tick，与阅读光标 CursorTick 相互独立。
-    private float _chronicleCenterTick;
+
+
+    // 共享状态
+    private readonly MemoryTabContext _context = new();
+
+
+
     // 篇章视窗的时间跨度（Tick 数），默认一年，受 MinimumSpan/MaximumSpan 约束。
     private float _chronicleSpanTicks = GenDate.TicksPerYear;
+
+    private int _chronicleStartTick;
+    private int _chronicleEndTick;
+
+
+
+    // 当前可见的篇章列表，每帧由 Refresh() 从 MemoryComp 重建并按标签过滤
+    // 非空，不会有空元素。enjoy
+    private readonly List<MemoryEntry> _chapters = new();
+
+
+    // 篇章视窗中心对应的游戏 Tick，与阅读光标 CursorTick 相互独立。
+    private float _chronicleCenterTick;
+
     // 是否正在拖动时间轴上的阅读光标。
     private bool _draggingCursor;
     // 是否已按下鼠标但尚未达到拖拽阈值，用于区分单击与框选。
     private bool _dragArmed;
-    // 是否已进入框选模式（拖拽距离超过阈值后置位）。
-    private bool _dragSelecting;
-    // 框选起点的屏幕坐标。
-    private Vector2 _dragStart;
-    // 框选当前终点的屏幕坐标。
-    private Vector2 _dragCurrent;
-    // 框选开始前的既有选中集合，用于在 Ctrl 模式下保留原选择并叠加新选区。
-    private HashSet<MemoryEntry> _dragBaseSelection = new();
-    // 上一次单击选中的篇章，作为 Shift 范围选择的锚点。
-    private MemoryEntry _selectionAnchor;
 
-    public MemoryChronicle(MemoryTabContext context, Cursor cursor)
+
+    // 框选
+    private bool _dragSelecting; // 正在框选
+    private Vector2 _dragStart; // 框选起点
+    private Vector2 _dragCurrent; // 框选终点
+    private HashSet<MemoryEntry> _dragBaseSelection = new(); // 已选中集合，用于在 Ctrl 模式下保留原选择并叠加新选区。
+    private MemoryEntry _selectionAnchor; // Shift 范围选择的锚点
+
+    public MemoryChronicle(MemoryTabContext context)
     {
         _context = context;
-        _cursor = cursor;
+        _context.ResetState += ResetMutiSelect;
+        _context.RePositionCursor += KeepCursorVisible;
     }
 
     // 主入口：布局标题、篇章区、时间轴，再处理输入、绘制光标与篇章选择。
     public void Draw(Rect rect)
     {
-        // 上下文正在重置（Pawn/存档切换）时先清空本组件的瞬态状态，避免用旧帧数据。
-        if (_context.ContextReseting) ResetTransientState();
+        // 绘制背景
+        Widgets.DrawMenuSection(rect);
+
         // 没有有效记忆档案时只画一个占位提示，不进入后续绘制流程。
         if (!_context.HasMemory)
         {
-            Widgets.DrawMenuSection(rect);
             using (new TextBlock(TextAnchor.MiddleCenter))
-                Widgets.Label(rect, MemoryArchiveText.Get("RimTalk.Memory.UI.InvalidChronicle"));
+                Widgets.Label(rect, "RimTalk.Memory.UI.InvalidChronicle".Translate());
             return;
         }
 
-        // 每帧重建可见篇章（数据可能被其他流程改动）。
-        Refresh();
-        // 缓存本帧要用的上下文快照，避免后续重复访问。
-        IReadOnlyList<MemoryEntry> chapters = _chapters;
-        int minimumTick = _context.LifeStartTick;
-        int maximumTick = _context.LifeCurrentTick;
-        HashSet<MemoryEntry> selection = _context.Selection;
-        Widgets.DrawMenuSection(rect);
+        // 每帧刷新自身状态
+        RefreshChapter();
+
         // 三段布局：标题条 → 篇章区 → 时间轴底栏，竖向自上而下排列。
         Rect inner = rect.ContractedBy(8f);
-        Rect titleRect = new(inner.x, inner.y, inner.width, 18f);
-        Rect chapterRect = new(inner.x, titleRect.yMax + 3f, inner.width, inner.height - titleRect.height - AxisHeight - 5f);
-        Rect axisRect = new(inner.x, chapterRect.yMax, inner.width, AxisHeight);
+        float width = inner.width;
+        float x = inner.x;
+        float y = inner.y;
 
-        // 标题：篇章数 + 当前视窗跨度（换算成天）。
-        Text.Font = GameFont.Tiny;
-        GUI.color = new Color(0.72f, 0.78f, 0.82f);
-        Widgets.Label(titleRect, MemoryArchiveText.Get("RimTalk_Archive_ChronicleTitle", chapters.Count, Mathf.RoundToInt(_chronicleSpanTicks / GenDate.TicksPerDay)));
-        GUI.color = Color.white;
-        Text.Font = GameFont.Small;
+        // 标题条绘制：篇章数 + 当前视窗跨度（换算成天）
+        Rect titleRect = new(x, y, width, TitleHeight);
+        using (new TextBlock(GameFont.Tiny, new Color(0.72f, 0.78f, 0.82f)))
+            Widgets.Label(titleRect, "RimTalk_Archive_ChronicleTitle".Translate((_chronicleEndTick - _chronicleStartTick / GenDate.TicksPerDay).Named("DAYS")));
+        y += TitleHeight;
 
-        // 篇章区与时间轴的底色。
+        // 内部派发时间轴绘制：刻度线 + 日期文本
+        float bottomY = inner.yMax;
+        Rect axisRect = new(x, bottomY - AxisHeight, width, AxisHeight);
+        DrawAxis(axisRect);
+
+
+
+
+
+
+
+        // 篇章栏绘制：背景色 + 篇章卡片 + 重叠徽标
+        y += ChapterGap;
+        Rect chapterRect = new(x, y, width, inner.height - TitleHeight - AxisHeight - 5f);
+
+
+
+
+        // 篇章栏与时间轴的底色。
         Widgets.DrawBoxSolid(chapterRect, new Color(0.07f, 0.08f, 0.09f, 0.82f));
-        Widgets.DrawBoxSolid(axisRect, new Color(0.095f, 0.105f, 0.115f, 0.96f));
 
         // 把视窗跨度/中心约束到生命起止范围内。
+        int minimumTick = _context.LifeStartTick;
+        int maximumTick = _context.LifeCurrentTick;
         NormalizeViewport(minimumTick, maximumTick);
 
         // 篇章视窗和阅读光标是独立状态，光标可以出现在时间轴上的任意横向位置。
         float halfSpan = _chronicleSpanTicks * 0.5f;
         float startTick = _chronicleCenterTick - halfSpan;
         float endTick = _chronicleCenterTick + halfSpan;
-        DrawChapters(chapterRect, chapters, startTick, endTick, selection);
-        DrawAxis(axisRect, startTick, endTick, _context.CursorTick);
+        HashSet<MemoryEntry> selection = _context.Selection;
+        DrawChapters(chapterRect, _chapters, startTick, endTick, selection);
 
         // 输入处理可能改动 CursorTick 并返回“时间流需要跟随定位”的请求。
         bool requestedTimelinePosition = HandleInput(
@@ -111,23 +147,72 @@ public sealed class MemoryChronicle
             minimumTick,
             maximumTick);
         DrawCursor(chapterRect, axisRect, _context.CursorTick, startTick, endTick);
-        HandleChapterSelection(chapterRect, chapters, startTick, endTick, selection);
+        HandleChapterSelection(chapterRect, _chapters, startTick, endTick, selection);
         // 把“需要时间流定位”的请求上交给上下文，由它驱动时间流组件。
-        _context.TimelineNeedsPositioning = requestedTimelinePosition;
+        _context.RaiseRePositionTimeline();
     }
 
-    // 每帧从 MemoryComp 的 CLPA 档案重建篇章列表，应用标签过滤。
-    public void Refresh()
+    // 每帧从 MemoryComp 的 CLPA 档案重建篇章列表，只应用标签过滤。
+    public void RefreshChapter()
     {
         _chapters.Clear();
-        // 没有记忆组件时直接留空，由 Draw 的占位逻辑兜底。
-        if (_context.MemoryComp is null) return;
         string query = _context.TagFilter?.Trim();
-        // 只保留非空篇章；有标签查询时再按“包含查询串”做不区分大小写的过滤。
         _chapters.AddRange(_context.MemoryComp.ArchiveMemories
-            .Where(memory => memory is not null)
-            .Where(memory => string.IsNullOrWhiteSpace(query)
-                             || memory.Tags?.Any(tag => tag.Contains(query, System.StringComparison.OrdinalIgnoreCase)) == true));
+            .Where(memory =>
+            memory is not null
+            && (
+            string.IsNullOrWhiteSpace(query)
+            || (memory.Tags?.Any(tag => tag?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false) ?? false)
+            )));
+    }
+
+    // 时间轴底栏：按可见天数自适应选刻度步长（1/5/15/60 天），再画刻度线与日期。cursorTick 暂未使用。
+    private void DrawAxis(Rect rect)
+    {
+        // 背景
+        Widgets.DrawBoxSolid(rect, new Color(0.095f, 0.105f, 0.115f, 0.96f));
+
+        int axisStart;
+        int axisEnd;
+        int maxAxisTicks;
+        Func<int, string> getDateString;
+
+        // 换算单位
+        // 篇章区时间跨度一定大于等于一天
+        switch (_chronicleEndTick - _chronicleStartTick)
+        {
+            // 这里的魔法数字 36 是使得 nice 步长变为 10 天的阈值
+            case < GenDate.TicksPerDay * MaxAxisDayTicks * 36:
+                getDateString = ;
+                maxAxisTicks = 1; 
+                break;
+
+            case
+        }
+
+
+
+        // 把 Tick 范围换算成“天”范围，便于按天定刻度。
+        // 刻度单位为天
+        int firstDay = _chronicleStartTick / GenDate.TicksPerDay;
+        int lastDay = _chronicleEndTick / GenDate.TicksPerDay;
+        int visibleDays = Math.Max(1, lastDay - firstDay);
+
+        // 固定绘制五个刻度
+        int textStep = visibleDays / 5;
+
+        Text.Font = GameFont.Tiny;
+        GUI.color = new Color(0.62f, 0.66f, 0.69f);
+        // 从第一个对齐到 step 的天开始，每隔 step 天画一个刻度。
+        for (int day = firstDay - firstDay % step; day <= lastDay; day += step)
+        {
+            int tick = day * GenDate.TicksPerDay;
+            float x = TickToX(tick, startTick, endTick, rect);
+            Widgets.DrawBoxSolid(new Rect(x, rect.y, 1f, 7f), new Color(0.38f, 0.42f, 0.45f));
+            Widgets.Label(new Rect(x + 3f, rect.y + 7f, 82f, 18f), DateLabel(tick));
+        }
+        GUI.color = Color.white;
+        Text.Font = GameFont.Small;
     }
 
     // 绘制篇章卡片（选中框、置顶按钮、内容摘要），并对相互重叠的篇章生成可点击的折叠入口。
@@ -365,27 +450,12 @@ public sealed class MemoryChronicle
             () => _context.Focus(memory))).ToList()));
     }
 
-    // 时间轴底栏：按可见天数自适应选刻度步长（1/5/15/60 天），再画刻度线与日期。cursorTick 暂未使用。
-    private static void DrawAxis(Rect rect, float startTick, float endTick, int cursorTick)
+    // Pawn/存档切换时清空上一上下文的残留状态（Shift 锚点、拖拽中状态、篇章缓存），避免新上下文误用旧选择或旧拖拽轨迹。
+    public void ResetMutiSelect()
     {
-        // 把 Tick 范围换算成“天”范围，便于按天定刻度。
-        int firstDay = Mathf.FloorToInt(startTick / GenDate.TicksPerDay);
-        int lastDay = Mathf.CeilToInt(endTick / GenDate.TicksPerDay);
-        int visibleDays = Math.Max(1, lastDay - firstDay);
-        // 跨度越大步长越粗，避免刻度文本互相挤压；放大时自动变密。
-        int step = visibleDays > 240 ? 60 : visibleDays > 80 ? 15 : visibleDays > 25 ? 5 : 1;
-        Text.Font = GameFont.Tiny;
-        GUI.color = new Color(0.62f, 0.66f, 0.69f);
-        // 从第一个对齐到 step 的天开始，每隔 step 天画一个刻度。
-        for (int day = firstDay - firstDay % step; day <= lastDay; day += step)
-        {
-            int tick = day * GenDate.TicksPerDay;
-            float x = TickToX(tick, startTick, endTick, rect);
-            Widgets.DrawBoxSolid(new Rect(x, rect.y, 1f, 7f), new Color(0.38f, 0.42f, 0.45f));
-            Widgets.Label(new Rect(x + 3f, rect.y + 7f, 82f, 18f), DateLabel(tick));
-        }
-        GUI.color = Color.white;
-        Text.Font = GameFont.Small;
+        _selectionAnchor = null;
+        _dragArmed = false;
+        _dragSelecting = false;
     }
 
     /// <summary>
@@ -541,15 +611,5 @@ public sealed class MemoryChronicle
         public MemoryEntry Memory { get; }
         public Rect Rect { get; }
         public ChapterHit(MemoryEntry memory, Rect rect) { Memory = memory; Rect = rect; }
-    }
-
-    // Pawn/存档切换时清空上一上下文的残留状态（Shift 锚点、拖拽中状态、篇章缓存），避免新上下文误用旧选择或旧拖拽轨迹。
-    public void ResetTransientState()
-    {
-        // 这些都是依赖具体 Pawn/存档的瞬态状态，切换后必须清零，否则会误用上一上下文的选择或拖拽。
-        _selectionAnchor = null;
-        _dragArmed = false;
-        _dragSelecting = false;
-        _chapters.Clear();
     }
 }

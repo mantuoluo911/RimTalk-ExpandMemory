@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -39,11 +40,13 @@ public sealed class MemoryTabContext
     // 选中记忆集合
     public readonly HashSet<MemoryEntry> Selection = new();
 
-    public bool TimelineNeedsPositioning;
-
-    public bool ContextReseting = true;
-
+    // 快速检查当前 context 是否有实际内容
     public bool HasMemory => MemoryComp is not null && _allMemories.Count > 0;
+
+    // 事件
+    public event Action ResetState;
+    public event Action RePositionTimeline;
+    public event Action RePositionCursor;
 
 
     // 私有数据，供内部检查数据时效
@@ -55,26 +58,23 @@ public sealed class MemoryTabContext
     public void Update(Rect inRect)
     {
         InRect = inRect;
-        CheckReset();
+        CheckCompChange();
         Refresh();
     }
 
-    private void CheckReset()
+    private void CheckCompChange()
     {
-        ContextReseting = false;
-
-        // 当前 context 目标出现有效变化时，更新 MemoryComp 并重置 context 状态
+        // 当前 context 目标出现有效变化时，更新 MemoryComp 并触发重置
         if (Find.Selector.SingleSelectedThing is Pawn pawn
             && pawn != MemoryComp?.parent
             && pawn.TryGetComp<FourLayerMemoryComp>() is { } memoryComp)
         {
             MemoryComp = memoryComp;
+
             _allMemories?.Clear();
             FocusedMemory = null;
             Selection.Clear();
-
-            TimelineNeedsPositioning = true;
-            ContextReseting = true;
+            ResetState?.Invoke();
         }
     }
 
@@ -139,4 +139,9 @@ public sealed class MemoryTabContext
         Selection.Clear();
         FocusedMemory = null;
     }
+
+    public void KeepCursorVisible() { }
+
+    public void RaiseRePositionTimeline() => RePositionTimeline?.Invoke();
+    public void RaiseRePositionCursor() => RePositionCursor?.Invoke();
 }

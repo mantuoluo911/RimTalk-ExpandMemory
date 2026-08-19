@@ -51,13 +51,10 @@ public sealed class MemoryTabWindow : MainTabWindow
     {
         _context = new MemoryTabContext();
         _header = new MemoryTabHeader(_context);
+        _chronicle = new MemoryChronicle(_context);
+        _timeline = new MemoryTimelineView(_context);
         _details = new MemoryDetails(_context);
         _selectionBar = new MemorySelectionBar(_context);
-
-        var cursor = new Cursor(_chronicle, _timeline);
-        _chronicle = new MemoryChronicle(_context, cursor);
-        _timeline = new MemoryTimelineView(_context, cursor);
-        cursor.Initialize(_chronicle, _timeline);
 
         doCloseX = true;
     }

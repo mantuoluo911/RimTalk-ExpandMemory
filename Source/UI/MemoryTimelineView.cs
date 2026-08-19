@@ -17,7 +17,6 @@ public sealed class MemoryTimelineView
     private readonly MemoryTabContext _context;
     private Vector2 _timelineScroll;
     private readonly MemoryTimelineModel _model = new();
-    private readonly Cursor _cursor;
     private List<TimelineNode> _nodes = new();
     private MemoryEntry _selectionAnchor;
     private bool _dragSelecting;
@@ -30,16 +29,14 @@ public sealed class MemoryTimelineView
     public int CenterTick { get; private set; }
     public bool UserScrolled { get; private set; }
 
-    public MemoryTimelineView(MemoryTabContext context, Cursor cursor)
+    public MemoryTimelineView(MemoryTabContext context)
     {
         _context = context;
-        _cursor = cursor;
+        _context.ResetState += ResetTransientState;
+        _context.RePositionTimeline += CenterOnTick;
     }
-
     public void Draw(Rect rect)
     {
-        if (_context.ContextReseting) ResetTransientState();
-
         if (!_context.HasMemory)
         {
             Widgets.DrawMenuSection(rect);
@@ -93,21 +90,17 @@ public sealed class MemoryTimelineView
         UserScrolled = _timelineScroll != scrollBeforeDraw;
         UpdateCenterTick(_timelineScroll.y + viewport.height * 0.5f);
 
-        if (_context.TimelineNeedsPositioning)
-        {
-            CenterOnTick(rect.height - 16f, _context.CursorTick);
-            _context.TimelineNeedsPositioning = false;
-        }
-        else if (UserScrolled && CenterTick != _context.CursorTick)
+        if (UserScrolled && CenterTick != _context.CursorTick)
         {
             _context.CursorTick = CenterTick;
-            _cursor.KeepCursorVisible();
         }
     }
 
-    public void CenterOnTick(float viewportHeight, int tick)
+    public void CenterOnTick()
     {
         if (_nodes.Count == 0) return;
+
+        int tick = _context.CursorTick;
 
         // 时间流节点离散，篇章光标落在空时段时按绝对时间选择最近节点，同距偏向较新节点。
         TimelineNode nearest = _nodes
@@ -115,9 +108,9 @@ public sealed class MemoryTimelineView
             .ThenByDescending(node => node.Tick)
             .First();
         float contentHeight = _nodes[^1].Y + _nodes[^1].Height + _verticalPadding * 2f;
-        float maximumScroll = Math.Max(0f, contentHeight - viewportHeight);
+        float maximumScroll = Math.Max(0f, contentHeight);
         _timelineScroll.y = Mathf.Clamp(
-            nearest.Y + _verticalPadding + nearest.Height * 0.5f - viewportHeight * 0.5f,
+            nearest.Y + _verticalPadding + nearest.Height * 0.5f,
             0f,
             maximumScroll);
         CenterTick = nearest.Tick;
