@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace RimTalk.Memory.Utils;
 
@@ -9,11 +8,31 @@ public static class MathUtil
     /// <summary>
     /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
     /// </summary>
-    public static List<long> GenerateTicks(
+    public static IEnumerable<int> GenerateTicksFromStep(
         int min,
         int max,
-        int maxTickCount,
-        out long step)
+        int step
+        )
+    {
+        if (max <= min)
+            throw new ArgumentException("max must be greater than min.");
+
+        if (step <= 0)
+            throw new ArgumentException("forceStep must be positive.");
+
+        for (int tick = (min > 0 ? min + step - 1 : min) / step * step; tick <= max; tick += step)
+            yield return tick;
+    }
+
+    /// <summary>
+    /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
+    /// 步长根据 maxTickCount 自动计算。
+    /// </summary>
+    public static IEnumerable<long> GenerateTicks(
+        int min,
+        int max,
+        int maxTickCount
+        )
     {
         if (max <= min)
             throw new ArgumentException("max must be greater than min.");
@@ -21,23 +40,47 @@ public static class MathUtil
         if (maxTickCount < 1)
             throw new ArgumentException("maxTickCount must be at least 1.");
 
-        step = CalculateNiceStep((long)max - min, maxTickCount);
+        long step = CalculateNiceStep((long)max - min, maxTickCount);
 
-        List<long> ticks = new();
         for (long tick = (min > 0 ? min + step - 1 : min) / step * step; tick <= max; tick += step)
-            ticks.Add(tick);
-
-        return ticks;
+            yield return tick;
     }
 
     /// <summary>
     /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
     /// </summary>
-    public static List<float> GenerateTicks(
+    public static IEnumerable<float> GenerateTicksFromStep(
         float min,
         float max,
-        int maxTickCount,
-        out float step)
+        float step
+        )
+    {
+        if (max <= min)
+            throw new ArgumentException("max must be greater than min.");
+
+        if (step <= 0f)
+            throw new ArgumentException("forceStep must be positive.");
+
+        // 用 start + i * step 而非累加，避免浮点误差累积。
+        float start = (float)MathF.Ceiling(min / step) * step;
+
+        for (int i = 0; ; i++)
+        {
+            float tick = start + i * step;
+            if (tick > max) break;
+            yield return tick;
+        }
+    }
+
+    /// <summary>
+    /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
+    /// 步长根据 maxTickCount 自动计算。
+    /// </summary>
+    public static IEnumerable<float> GenerateTicks(
+        float min,
+        float max,
+        int maxTickCount
+        )
     {
         if (max <= min)
             throw new ArgumentException("max must be greater than min.");
@@ -45,23 +88,17 @@ public static class MathUtil
         if (maxTickCount < 1)
             throw new ArgumentException("maxTickCount must be at least 1.");
 
-        step = CalculateNiceStep(max - min, maxTickCount);
-
-        // 与 long 版本一致：min > 0 时向上对齐到 step 的整数倍。
-        float start = min > 0f ? (float)Math.Ceiling(min / step) * step : min;
+        float step = CalculateNiceStep(max - min, maxTickCount);
 
         // 用 start + i * step 而非累加，避免浮点误差累积。
-        List<float> ticks = new();
+        float start = (float)MathF.Ceiling(min / step) * step;
+
         for (int i = 0; ; i++)
         {
             float tick = start + i * step;
-            if (tick > max)
-                break;
-
-            ticks.Add(tick);
+            if (tick > max) break;
+            yield return tick;
         }
-
-        return ticks;
     }
 
     /// <summary>
@@ -71,7 +108,8 @@ public static class MathUtil
     /// </summary>
     public static long CalculateNiceStep(
         long range,
-        int maxTickCount)
+        int maxTickCount
+        )
     {
         if (range <= 0)
             throw new ArgumentException("range must be positive.");
@@ -105,7 +143,8 @@ public static class MathUtil
     /// </summary>
     public static float CalculateNiceStep(
         float range,
-        int maxTickCount)
+        int maxTickCount
+        )
     {
         if (range <= 0f)
             throw new ArgumentException("range must be positive.");
@@ -114,17 +153,10 @@ public static class MathUtil
             throw new ArgumentException("maxTickCount must be at least 1.");
 
         // N 个刻度产生 N + 1 个间隔，因此步长取 range / (N + 1)，
-        // 向上取到 nice 值的工作由下方 switch 完成。
         float roughStep = range / (maxTickCount + 1);
 
-        // 找到 roughStep 所在的 10 的数量级，支持小数数量级。
-        float magnitude = 1f;
-
-        while (magnitude * 10f <= roughStep)
-            magnitude *= 10f;
-
-        while (magnitude > roughStep)
-            magnitude /= 10f;
+        // 数量级计算
+        float magnitude = MathF.Pow(10, MathF.Floor(MathF.Log10(roughStep)));
 
         // 向上取到 1 / 2 / 5 / 10 再恢复数量级。
         return (roughStep / magnitude) switch

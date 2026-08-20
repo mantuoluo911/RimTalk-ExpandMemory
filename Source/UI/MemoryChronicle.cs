@@ -18,24 +18,6 @@ public sealed class MemoryChronicle
     private const float TitleHeight = 18f;
     private const float ChapterGap = 3f;
 
-    private const float AxisLabelGap = 4.0f;
-
-
-    private const int MaxAxisDayTicks = 6;
-    private const int MaxAxisQuadrumTicks = 9;
-    private const int MaxAxisYearTicks = 12;
-
-    // 时间轴天数阈值，超出则切换单位为“象”。此处 5 即我们允许的最大天数步长
-    private const int DayTickThreshold = 5 * (MaxAxisDayTicks + 1);
-
-    // 时间轴象数阈值，超出则切换单位为“年”。此处 2 即我们允许的最大象数步长
-    private const int QuadrumTickThreshold = 2 * (MaxAxisQuadrumTicks + 1);
-
-
-    private const float DayTickHeight = 6f;
-    private const float QuadrumTickHeight = 8f;
-    private const float YearTickHeight = 10f;
-
 
     // 时间轴底栏的固定像素高度（含刻度线与日期文本）。
     private const float AxisHeight = 28f;
@@ -83,6 +65,11 @@ public sealed class MemoryChronicle
     private HashSet<MemoryEntry> _dragBaseSelection = new(); // 已选中集合，用于在 Ctrl 模式下保留原选择并叠加新选区。
     private MemoryEntry _selectionAnchor; // Shift 范围选择的锚点
 
+
+    private ChronicleAxis _axis = new();
+
+
+
     public MemoryChronicle(MemoryTabContext context)
     {
         _context = context;
@@ -122,7 +109,7 @@ public sealed class MemoryChronicle
         // 内部派发时间轴绘制：刻度线 + 日期文本
         float bottomY = inner.yMax;
         Rect axisRect = new(x, bottomY - AxisHeight, width, AxisHeight);
-        DrawAxis(axisRect);
+        _axis.DrawAxis(axisRect, _chronicleStartTick, _chronicleEndTick);
 
 
 
@@ -180,152 +167,6 @@ public sealed class MemoryChronicle
             )));
     }
 
-    // 时间轴底栏：按可见天数自适应选刻度步长（1/5/15/60 天），再画刻度线与日期。cursorTick 暂未使用。
-    private void DrawAxis(Rect rect)
-    {
-        // 背景
-        Widgets.DrawBoxSolid(rect, new Color(0.095f, 0.105f, 0.115f, 0.96f));
-
-        // 两端点
-        Color tickColor = new Color(0.38f, 0.42f, 0.45f);
-        Widgets.DrawBoxSolid(new Rect(rect.x, rect.y, 2f, YearTickHeight), tickColor);
-        Widgets.DrawBoxSolid(new Rect(rect.xMax - 2f, rect.y, 2f, YearTickHeight), tickColor);
-
-        float width = rect.width;
-        float x = rect.x;
-        float y = rect.y;
-        float xMax = rect.xMax;
-        float labelY = rect.y + AxisLabelGap;
-        float labelHeight = rect.yMax - labelY;
-
-        int startTick;
-        int endTick;
-        float tickRange;
-        List<long> tickList;
-        long step;
-        float stepWidth;
-
-
-        // 绘制刻度线与日期文本
-        switch (_chronicleEndTick - _chronicleStartTick)
-        {
-            // 刻度单位为天，最多 6 个刻度，刻度步长超过 5 则切换为象。
-            case <= DayTickThreshold * GenDate.TicksPerDay:
-                // 换算为天数时需要 +1，因为我们需要表示的是“第几天”，而不是“已经过去了几天“
-                startTick = _chronicleStartTick / GenDate.TicksPerDay + 1;
-                endTick = _chronicleEndTick / GenDate.TicksPerDay + 1;
-
-                tickRange = endTick - startTick;
-                tickList = MathUtil.GenerateTicks(startTick, endTick, MaxAxisDayTicks, out step);
-                stepWidth = step / tickRange * width;
-
-                for (int i = 0; i < tickList.Count; i++)
-                {
-                    int dayTick = (int)tickList[i];
-                    long absTick = GenDate.TickGameToAbs(dayTick * GenDate.TicksPerDay);
-
-                    if (i == 0)
-                        x += (dayTick - startTick) / tickRange * rect.width;
-                    else
-                        x += stepWidth;
-
-                    using (new TextBlock(GameFont.Tiny))
-                        switch (dayTick)
-                        {
-                            case var _ when dayTick % GenDate.DaysPerYear == 1:
-                                Widgets.DrawBoxSolid(new Rect(x, y, 2f, YearTickHeight), tickColor);
-                                using (new TextBlock(GameFont.Medium))
-                                    Widgets.Label(
-                                        new Rect(x + 2f + AxisLabelGap, labelY, xMax - (x + 2f + AxisLabelGap), labelHeight),
-                                        $"{GenDate.Year(absTick, 0L)}"
-                                        );
-                                break;
-
-                            case var _ when dayTick % GenDate.DaysPerQuadrum == 1:
-                                Widgets.DrawBoxSolid(new Rect(x, y, 1f, QuadrumTickHeight), tickColor);
-                                using (new TextBlock(GameFont.Small))
-                                    Widgets.Label(
-                                        new Rect(x + 1f + AxisLabelGap, labelY, xMax - (x + 1f + AxisLabelGap), labelHeight),
-                                        GenDate.Quadrum(absTick, 0L).Label()
-                                        );
-                                break;
-
-                            default:
-                                Widgets.DrawBoxSolid(new Rect(x, y, 1f, DayTickHeight), tickColor);
-                                Widgets.Label(
-                                    new Rect(x + 1f + AxisLabelGap, labelY, xMax - (x + 1f + AxisLabelGap), labelHeight),
-                                    $"{GenDate.DayOfQuadrum(absTick, 0L) + 1}"
-                                    );
-                                break;
-                        }
-                }
-                break;
-
-            // 刻度单位为象，最多 9 个刻度，刻度步长超过 2 则切换为年。
-            case <= QuadrumTickThreshold * GenDate.TicksPerQuadrum:
-                // 换算为象数时需要 +1，因为我们需要表示的是“第几象”，而不是“已经过去了几象“
-                startTick = _chronicleStartTick / GenDate.TicksPerDay + 1;
-                endTick = _chronicleEndTick / GenDate.TicksPerDay + 1;
-
-                tickRange = endTick - startTick;
-                tickList = MathUtil.GenerateTicks(startTick, endTick, MaxAxisDayTicks, out step);
-                stepWidth = step / tickRange * width;
-
-                for (int i = 0; i < tickList.Count; i++)
-                {
-                    int dayTick = (int)tickList[i];
-
-                    if (i == 0)
-                        x += (dayTick - startTick) / tickRange * rect.width;
-                    else
-                        x += stepWidth;
-
-                    switch (dayTick)
-                    {
-                        case var _ when dayTick % GenDate.DaysPerYear == 1:
-                            Widgets.DrawBoxSolid(new Rect(x, y, 2f, YearTickHeight), tickColor);
-                            break;
-
-                        case var _ when dayTick % GenDate.DaysPerQuadrum == 1:
-                            Widgets.DrawBoxSolid(new Rect(x, y, 1f, QuadrumTickHeight), tickColor);
-                            break;
-
-                        default:
-                            Widgets.DrawBoxSolid(new Rect(x, y, 1f, DayTickHeight), tickColor);
-                            break;
-                    }
-                }
-
-
-                break;
-        }
-
-
-
-
-
-        // 把 Tick 范围换算成“天”范围，便于按天定刻度。
-        // 刻度单位为天
-        int firstDay = _chronicleStartTick / GenDate.TicksPerDay;
-        int lastDay = _chronicleEndTick / GenDate.TicksPerDay;
-        int visibleDays = Math.Max(1, lastDay - firstDay);
-
-        // 固定绘制五个刻度
-        int textStep = visibleDays / 5;
-
-        Text.Font = GameFont.Tiny;
-        GUI.color = new Color(0.62f, 0.66f, 0.69f);
-        // 从第一个对齐到 step 的天开始，每隔 step 天画一个刻度。
-        for (int day = firstDay - firstDay % step; day <= lastDay; day += step)
-        {
-            int tick = day * GenDate.TicksPerDay;
-            float x = TickToX(tick, startTick, endTick, rect);
-            Widgets.DrawBoxSolid(new Rect(x, rect.y, 1f, 7f), new Color(0.38f, 0.42f, 0.45f));
-            Widgets.Label(new Rect(x + 3f, rect.y + 7f, 82f, 18f), DateLabel(tick));
-        }
-        GUI.color = Color.white;
-        Text.Font = GameFont.Small;
-    }
 
     // 绘制篇章卡片（选中框、置顶按钮、内容摘要），并对相互重叠的篇章生成可点击的折叠入口。
     private void DrawChapters(
