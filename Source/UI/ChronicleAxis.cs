@@ -1,7 +1,7 @@
 ﻿using RimTalk.Memory.Utils;
 using RimWorld;
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Verse;
 
@@ -9,271 +9,163 @@ namespace RimTalk.Memory.UI;
 
 public class ChronicleAxis
 {
-
+    // 轴标签与刻度线绘制相关
     private const float AxisLabelGap = 4.0f;
-
-
-    private const int MaxTickCount = 12;
-    private const int MaxYearTickCount = 9;
-
-    // 时间轴天数阈值，超出则切换单位为“象”。此处 5 即我们允许的最大天数步长
-    private const int DayTickThreshold = 5 * (MaxTickCount + 1);
-
-    // 时间轴象数阈值，超出则切换单位为“年”。此处 2 即我们允许的最大象数步长
-    private const int QuadrumTickThreshold = 2 * (MaxTickCount + 1);
-
-
     private const float DayTickHeight = 6f;
     private const float QuadrumTickHeight = 8f;
     private const float YearTickHeight = 10f;
+    private const float YearTickWidth = 2f;
 
+    // 刻度步长运算相关
+    private const int MaxTickCount = 12;
+    private const int MaxYearTickCount = 9;
+    private const int MaxRangeForStep1 = 1 * (MaxTickCount + 1) * GenDate.TicksPerDay;
+    private const int MaxRangeForStep3 = 3 * (MaxTickCount + 1) * GenDate.TicksPerDay;
+    private const int MaxRangeForStep5 = 5 * (MaxTickCount + 1) * GenDate.TicksPerDay;
+    private const int MaxRangeForStep15 = 15 * (MaxTickCount + 1) * GenDate.TicksPerDay;
+    private const int MaxRangeForStep30 = 30 * (MaxTickCount + 1) * GenDate.TicksPerDay;
 
+    // 缓存相关
+    private Rect _rect;
+    private int _startTick;
+    private int _endTick;
+    private readonly List<(Rect BoxRect, Rect LabelRect, string Label)> _tickDrawCache = new();
+    private readonly List<(Rect BoxRect, Rect LabelRect, string Label)> _tickDrawTinyCache = new();
+    private readonly List<(Rect BoxRect, Rect LabelRect, string Label)> _tickDrawMediumCache = new();
 
-
-
-
-
-    private int _startAbsTick;
-    private int _endAbsTick;
-
-    // 时间轴底栏：按可见天数自适应选刻度步长（1/5/15/60 天），再画刻度线与日期。cursorTick 暂未使用。
-    public void DrawAxis(Rect rect, int startGameTick, int endGameTick)
+    public void Draw(Rect rect, int startTick, int endTick)
     {
-        _startAbsTick = GenDate.TickGameToAbs(startGameTick);
-        _endAbsTick = GenDate.TickGameToAbs(endGameTick);
-
         // 背景
         Widgets.DrawBoxSolid(rect, new Color(0.095f, 0.105f, 0.115f, 0.96f));
 
+        if (startTick >= endTick) return;
+
         // 两端点
-        Color tickColor = new Color(0.38f, 0.42f, 0.45f);
+        Color tickColor = new(0.38f, 0.42f, 0.45f);
         Widgets.DrawBoxSolid(new Rect(rect.x, rect.y, 2f, YearTickHeight), tickColor);
         Widgets.DrawBoxSolid(new Rect(rect.xMax - 2f, rect.y, 2f, YearTickHeight), tickColor);
 
-        Span<int> dayTickList = stackalloc int[MaxTickCount];
-        Span<int> quadrumTickList = stackalloc int[MaxTickCount];
-        Span<int> yearTickList = stackalloc int[MaxYearTickCount];
+        // 检查（并重建）缓存
+        CheckCache(rect, startTick, endTick);
 
-        CalculateTickLists(
-            dayTickList, quadrumTickList, yearTickList,
-            _startAbsTick, _endAbsTick,
-            out int dayTickCount, out int quadrumTickCount, out int yearTickCount, out float step
-            );
-
-
-
-
-        float width = rect.width;
-        float x = rect.x;
-        float y = rect.y;
-        float xMax = rect.xMax;
-        float labelY = rect.y + AxisLabelGap;
-        float labelHeight = rect.yMax - labelY;
-
-        int startTick;
-        int endTick;
-        float tickRange;
-        List<long> tickList;
-        long step;
-        float stepWidth;
-
-
-        // 绘制刻度线与日期文本
-        switch (_endAbsTick - _startAbsTick)
+        // 绘制刻度线和标签
+        foreach (var (boxRect, labelRect, label) in _tickDrawCache)
         {
-            // 刻度单位为天，最多 6 个刻度，刻度步长超过 5 则切换为象。
-            case <= DayTickThreshold * GenDate.TicksPerDay:
-                // 换算为天数时需要 +1，因为我们需要表示的是“第几天”，而不是“已经过去了几天“
-                startTick = _startAbsTick / GenDate.TicksPerDay + 1;
-                endTick = _endAbsTick / GenDate.TicksPerDay + 1;
-
-                tickRange = endTick - startTick;
-                tickList = MathUtil.GenerateTicks(startTick, endTick, MaxDayTicks, out step);
-                stepWidth = step / tickRange * width;
-
-                for (int i = 0; i < tickList.Count; i++)
-                {
-                    int dayTick = (int)tickList[i];
-                    long absTick = GenDate.TickGameToAbs(dayTick * GenDate.TicksPerDay);
-
-                    if (i == 0)
-                        x += (dayTick - startTick) / tickRange * rect.width;
-                    else
-                        x += stepWidth;
-
-                    using (new TextBlock(GameFont.Tiny))
-                        switch (dayTick)
-                        {
-                            case var _ when dayTick % GenDate.DaysPerYear == 1:
-                                Widgets.DrawBoxSolid(new Rect(x, y, 2f, YearTickHeight), tickColor);
-                                using (new TextBlock(GameFont.Medium))
-                                    Widgets.Label(
-                                        new Rect(x + 2f + AxisLabelGap, labelY, xMax - (x + 2f + AxisLabelGap), labelHeight),
-                                        $"{GenDate.Year(absTick, 0L)}"
-                                        );
-                                break;
-
-                            case var _ when dayTick % GenDate.DaysPerQuadrum == 1:
-                                Widgets.DrawBoxSolid(new Rect(x, y, 1f, QuadrumTickHeight), tickColor);
-                                using (new TextBlock(GameFont.Small))
-                                    Widgets.Label(
-                                        new Rect(x + 1f + AxisLabelGap, labelY, xMax - (x + 1f + AxisLabelGap), labelHeight),
-                                        GenDate.Quadrum(absTick, 0L).Label()
-                                        );
-                                break;
-
-                            default:
-                                Widgets.DrawBoxSolid(new Rect(x, y, 1f, DayTickHeight), tickColor);
-                                Widgets.Label(
-                                    new Rect(x + 1f + AxisLabelGap, labelY, xMax - (x + 1f + AxisLabelGap), labelHeight),
-                                    $"{GenDate.DayOfQuadrum(absTick, 0L) + 1}"
-                                    );
-                                break;
-                        }
-                }
-                break;
-
-            // 刻度单位为象，最多 9 个刻度，刻度步长超过 2 则切换为年。
-            case <= QuadrumTickThreshold * GenDate.TicksPerQuadrum:
-                // 换算为象数时需要 +1，因为我们需要表示的是“第几象”，而不是“已经过去了几象“
-                startTick = _startAbsTick / GenDate.TicksPerDay + 1;
-                endTick = _endAbsTick / GenDate.TicksPerDay + 1;
-
-                tickRange = endTick - startTick;
-                tickList = MathUtil.GenerateTicks(startTick, endTick, MaxDayTicks, out step);
-                stepWidth = step / tickRange * width;
-
-                for (int i = 0; i < tickList.Count; i++)
-                {
-                    int dayTick = (int)tickList[i];
-
-                    if (i == 0)
-                        x += (dayTick - startTick) / tickRange * rect.width;
-                    else
-                        x += stepWidth;
-
-                    switch (dayTick)
-                    {
-                        case var _ when dayTick % GenDate.DaysPerYear == 1:
-                            Widgets.DrawBoxSolid(new Rect(x, y, 2f, YearTickHeight), tickColor);
-                            break;
-
-                        case var _ when dayTick % GenDate.DaysPerQuadrum == 1:
-                            Widgets.DrawBoxSolid(new Rect(x, y, 1f, QuadrumTickHeight), tickColor);
-                            break;
-
-                        default:
-                            Widgets.DrawBoxSolid(new Rect(x, y, 1f, DayTickHeight), tickColor);
-                            break;
-                    }
-                }
-
-
-                break;
+            Widgets.DrawBoxSolid(boxRect, tickColor);
+            Widgets.Label(labelRect, label);
         }
 
+        using (new TextBlock(GameFont.Tiny))
+            foreach (var (boxRect, labelRect, label) in _tickDrawTinyCache)
+            {
+                Widgets.DrawBoxSolid(boxRect, tickColor);
+                Widgets.Label(labelRect, label);
+            }
 
-
-
-
-        // 把 Tick 范围换算成“天”范围，便于按天定刻度。
-        // 刻度单位为天
-        int firstDay = _startAbsTick / GenDate.TicksPerDay;
-        int lastDay = _endAbsTick / GenDate.TicksPerDay;
-        int visibleDays = Math.Max(1, lastDay - firstDay);
-
-        // 固定绘制五个刻度
-        int textStep = visibleDays / 5;
-
-        Text.Font = GameFont.Tiny;
-        GUI.color = new Color(0.62f, 0.66f, 0.69f);
-        // 从第一个对齐到 step 的天开始，每隔 step 天画一个刻度。
-        for (int day = firstDay - firstDay % step; day <= lastDay; day += step)
-        {
-            int tick = day * GenDate.TicksPerDay;
-            float x = TickToX(tick, startTick, endTick, rect);
-            Widgets.DrawBoxSolid(new Rect(x, rect.y, 1f, 7f), new Color(0.38f, 0.42f, 0.45f));
-            Widgets.Label(new Rect(x + 3f, rect.y + 7f, 82f, 18f), DateLabel(tick));
-        }
-        GUI.color = Color.white;
-        Text.Font = GameFont.Small;
+        using (new TextBlock(GameFont.Medium))
+            foreach (var (boxRect, labelRect, label) in _tickDrawMediumCache)
+            {
+                Widgets.DrawBoxSolid(boxRect, tickColor);
+                Widgets.Label(labelRect, label);
+            }
     }
 
-    // 填充 dayTicks、quadrumTicks、yearTicks 三个 Span，分别表示在当前时间轴范围内的天、象、年刻度列表。
-    // 因为是非常纯粹的数学运算，所以封装成一个静态方法。
-    private static void CalculateTickLists(
-        Span<int> dayTicks, Span<int> quadrumTicks, Span<int> yearTicks,
-        int startAbsTick, int endAbsTick,
-        out int dayTickCount, out int quadrumTickCount, out int yearTickCount, out float step
-        )
+    // 检查缓存是否需要更新，如果 rect 或 tick 范围发生变化，则重新计算刻度列表和绘制缓存。
+    private void CheckCache(Rect rect, int startTick, int endTick)
     {
-        dayTickCount = -1;
-        quadrumTickCount = -1;
-        yearTickCount = -1;
-
-        int range = endAbsTick - startAbsTick;
-
-        switch (range)
+        if (_rect != rect || _startTick != startTick || _endTick != endTick)
         {
-            // 刻度单位为天，刻度步长超过 5 则切换为象。
-            case <= DayTickThreshold * GenDate.TicksPerDay:
-                step = MathUtil.CalculateNiceStep(range / (float)GenDate.TicksPerDay, MaxTickCount);
-
-                foreach (var dayTickF in MathUtil.GenerateTicksFromStep(
-                    startAbsTick / (float)GenDate.TicksPerDay,
-                    endAbsTick / (float)GenDate.TicksPerDay,
-                    step
-                    ))
-                {
-                    int dayTick = (int)MathF.Round(dayTickF);
-                    switch (dayTick)
-                    {
-                        case var _ when dayTick % GenDate.DaysPerYear == 0:
-                            yearTicks[yearTickCount++] = dayTick * GenDate.TicksPerDay;
-                            break;
-                        case var _ when dayTick % GenDate.DaysPerQuadrum == 0:
-                            quadrumTicks[quadrumTickCount++] = dayTick * GenDate.TicksPerDay;
-                            break;
-                        default:
-                            dayTicks[dayTickCount++] = (dayTick - 1) * GenDate.TicksPerDay;
-                            break;
-                    }
-                }
-                break;
-
-            // 刻度单位为象，刻度步长超过 2 则切换为年。
-            case <= QuadrumTickThreshold * GenDate.TicksPerQuadrum:
-                step = MathUtil.CalculateNiceStep(range / (float)GenDate.TicksPerQuadrum, MaxTickCount);
-
-                foreach (var quadrumTickF in MathUtil.GenerateTicksFromStep(
-                    startAbsTick / (float)GenDate.TicksPerQuadrum,
-                    endAbsTick / (float)GenDate.TicksPerQuadrum,
-                    step
-                    ))
-                {
-                    int quadrumTick = (int)MathF.Round(quadrumTickF);
-                    switch (quadrumTick)
-                    {
-                        case var _ when quadrumTick % 4 == 0:
-                            yearTicks[yearTickCount++] = quadrumTick * GenDate.TicksPerQuadrum;
-                            break;
-                        default:
-                            dayTicks[dayTickCount++] = quadrumTick * GenDate.TicksPerDay;
-                            break;
-                    }
-                }
-                break;
-
-            default:
-                // Handle year ticks
-                break;
+            _rect = rect;
+            _startTick = startTick;
+            _endTick = endTick;
+            RebuildCache();
         }
-        dayTickCount++;
-        quadrumTickCount++;
-        yearTickCount++;
+    }
+    private void RebuildCache()
+    {
+        _tickDrawCache.Clear();
+        _tickDrawTinyCache.Clear();
+        _tickDrawMediumCache.Clear();
+
+        float width = _rect.width;
+        float xMax = _rect.xMax;
+
+        float labelY = _rect.y + AxisLabelGap;
+        float labelHeight = _rect.yMax - labelY;
+
+        float x = _rect.x;
+        float y = _rect.y;
+
+        int startAbsTick = GenDate.TickGameToAbs(_startTick);
+        int endAbsTick = GenDate.TickGameToAbs(_endTick);
+
+        var tickList = CalculateTickList(startAbsTick, endAbsTick, out int tickStep);
+        float xStep = tickStep / (float)(endAbsTick - startAbsTick) * width;
+
+        bool isFirstTick = true;
+        foreach (int tick in tickList)
+        {
+            if (isFirstTick)
+            {
+                x += (tick - startAbsTick) / (float)(endAbsTick - startAbsTick) * width;
+                isFirstTick = false;
+            }
+            else x += xStep;
+            
+            switch (tick)
+            {
+                case var _ when tick % GenDate.TicksPerYear == 0:
+                    float yearLabelX = x + YearTickWidth + AxisLabelGap;
+                    _tickDrawMediumCache.Add((
+                        new Rect(x, y, YearTickWidth, YearTickHeight),
+                        new Rect(yearLabelX, labelY, xMax - yearLabelX, labelHeight),
+                        $"{GenDate.Year(tick, 0L)}年"
+                        ));
+                    break;
+                case var _ when tick % GenDate.TicksPerQuadrum == 0:
+                    float quadrumLabelX = x + 1f + AxisLabelGap;
+                    _tickDrawCache.Add((
+                        new Rect(x, y, 1f, QuadrumTickHeight),
+                        new Rect(quadrumLabelX, labelY, xMax - quadrumLabelX, labelHeight),
+                        GenDate.Quadrum(tick, 0L).Label()
+                    ));
+                    break;
+                default:
+                    float dayLabelX = x + 1f + AxisLabelGap;
+                    _tickDrawTinyCache.Add((
+                        new Rect(x, y, 1f, DayTickHeight),
+                        new Rect(dayLabelX, labelY, xMax - dayLabelX, labelHeight),
+                        $"第{GenDate.DayOfQuadrum(tick, 0L)}天"
+                    ));
+                    break;
+            }
+        }
+
     }
 
+    // 计算刻度列表和步长，步长梯度为 {1，3，5，15，30} + {60，120，300}*10^k，即日、象、年、年 * nice tick。
+    // 返回时会把刻度和 step 都换算成绝对 tick，便于后续绘制。
+    // 因为是非常纯粹的逻辑运算，所以封装成一个静态方法。
+    private static IEnumerable<int> CalculateTickList(int startAbsTick, int endAbsTick, out int step)
+    {
+        // 使用预计算的阈值和 nice step 计算步长
+        int range = endAbsTick - startAbsTick;
+        float dayStep = range switch
+        {
+            <= MaxRangeForStep1 => 1f,
+            <= MaxRangeForStep3 => 3f,
+            <= MaxRangeForStep5 => 5f,
+            <= MaxRangeForStep15 => 15f,
+            <= MaxRangeForStep30 => 30f,
+            _ => MathUtil.CalculateNiceStep(range / (float)GenDate.TicksPerYear, MaxYearTickCount) * GenDate.DaysPerYear,
+        };
 
-
+        // float dayStep 和 GenerateTicksFromStep 返回的 float day 都是整数 float，可以大胆直接强转 int
+        step = (int)dayStep * GenDate.TicksPerDay;
+        return MathUtil.GenerateTicksFromStep(
+            startAbsTick / (float)GenDate.TicksPerDay,
+            endAbsTick / (float)GenDate.TicksPerDay,
+            dayStep
+            ).Select(day => (int)day * GenDate.TicksPerDay);
+    }
 }
-

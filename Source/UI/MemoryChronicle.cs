@@ -16,7 +16,7 @@ public sealed class MemoryChronicle
 {
     // 常量配置
     private const float TitleHeight = 18f;
-    private const float ChapterGap = 3f;
+    private const float ChronicleGap = 2f;
 
 
     // 时间轴底栏的固定像素高度（含刻度线与日期文本）。
@@ -103,27 +103,20 @@ public sealed class MemoryChronicle
         // 标题条绘制：篇章数 + 当前视窗跨度（换算成天）
         Rect titleRect = new(x, y, width, TitleHeight);
         using (new TextBlock(GameFont.Tiny, new Color(0.72f, 0.78f, 0.82f)))
-            Widgets.Label(titleRect, "RimTalk_Archive_ChronicleTitle".Translate((_chronicleEndTick - _chronicleStartTick / GenDate.TicksPerDay).Named("DAYS")));
-        y += TitleHeight;
+            Widgets.Label(titleRect, "RimTalk_Archive_ChronicleTitle");
+        y += TitleHeight + ChronicleGap;
 
         // 内部派发时间轴绘制：刻度线 + 日期文本
         float bottomY = inner.yMax;
         Rect axisRect = new(x, bottomY - AxisHeight, width, AxisHeight);
-        _axis.DrawAxis(axisRect, _chronicleStartTick, _chronicleEndTick);
-
-
-
+        _axis.Draw(axisRect, _chronicleStartTick, _chronicleEndTick);
+        bottomY -= AxisHeight + ChronicleGap;
 
 
 
 
         // 篇章栏绘制：背景色 + 篇章卡片 + 重叠徽标
-        y += ChapterGap;
-        Rect chapterRect = new(x, y, width, inner.height - TitleHeight - AxisHeight - 5f);
-
-
-
-
+        Rect chapterRect = new(x, y, width, bottomY - y);
         // 篇章栏与时间轴的底色。
         Widgets.DrawBoxSolid(chapterRect, new Color(0.07f, 0.08f, 0.09f, 0.82f));
 

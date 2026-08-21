@@ -26,28 +26,6 @@ public static class MathUtil
 
     /// <summary>
     /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
-    /// 步长根据 maxTickCount 自动计算。
-    /// </summary>
-    public static IEnumerable<long> GenerateTicks(
-        int min,
-        int max,
-        int maxTickCount
-        )
-    {
-        if (max <= min)
-            throw new ArgumentException("max must be greater than min.");
-
-        if (maxTickCount < 1)
-            throw new ArgumentException("maxTickCount must be at least 1.");
-
-        long step = CalculateNiceStep((long)max - min, maxTickCount);
-
-        for (long tick = (min > 0 ? min + step - 1 : min) / step * step; tick <= max; tick += step)
-            yield return tick;
-    }
-
-    /// <summary>
-    /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
     /// </summary>
     public static IEnumerable<float> GenerateTicksFromStep(
         float min,
@@ -70,6 +48,28 @@ public static class MathUtil
             if (tick > max) break;
             yield return tick;
         }
+    }
+
+    /// <summary>
+    /// 生成位于 [min, max] 内的所有 nice 刻度，延迟枚举。
+    /// 步长根据 maxTickCount 自动计算。
+    /// </summary>
+    public static IEnumerable<long> GenerateTicks(
+        int min,
+        int max,
+        int maxTickCount
+        )
+    {
+        if (max <= min)
+            throw new ArgumentException("max must be greater than min.");
+
+        if (maxTickCount < 1)
+            throw new ArgumentException("maxTickCount must be at least 1.");
+
+        long step = CalculateNiceStep((long)max - min, maxTickCount);
+
+        for (long tick = (min > 0 ? min + step - 1 : min) / step * step; tick <= max; tick += step)
+            yield return tick;
     }
 
     /// <summary>
