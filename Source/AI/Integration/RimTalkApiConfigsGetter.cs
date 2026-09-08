@@ -41,9 +41,7 @@ public static class RimTalkApiConfigGetter
             Provider = rimTalkApiConfig.Provider.Convert(),
             ApiKey = rimTalkApiConfig.ApiKey,
             CustomUrl = rimTalkApiConfig.BaseUrl,
-            CustomModelName = string.IsNullOrWhiteSpace(rimTalkApiConfig.CustomModelName)
-                ? rimTalkApiConfig.SelectedModel
-                : rimTalkApiConfig.CustomModelName,
+            CustomModelName = rimTalkApiConfig.GetEffectiveModelName(),
         }).ToList();
     }
 
