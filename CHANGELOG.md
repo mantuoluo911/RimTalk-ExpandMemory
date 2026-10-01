@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2026-10-01
+
+### Added
+- 工具菜单新增"归档全部"，可一键对全体殖民者触发归档。 (`1ecadec`)
+
+### Fixed
+- 为 LLM 服务返回值添加 XML 合法性校验：在 AI 回调前清洗非法 XML 字符，避免含非法字符的记忆文本在读写存档时引发崩溃。 (`78cad9e`)
+
 ## [1.14.0] - 2026-09-12
 
 ### Added
@@ -220,6 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 接手项目，基于前作代码开始后续维护与迭代。
 
+[1.14.1]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.12.0...v1.13.0
