@@ -88,7 +88,7 @@ public class OpenAIClient : IAIClient
             if (retry > 0)
             {
                 int delay = RetryDelayMs[retry - 1];
-                Log.Message($"[RimTalk.Memory.AI.Client] Attempt {retry}/{MaxRetrys + 1} failed (model={_model}). Retrying in {delay} ms.");
+                Log.Warning($"[RimTalk.Memory.AI.Client] Attempt {retry}/{MaxRetrys + 1} failed (model={_model}). Retrying in {delay} ms.");
                 await Task.Delay(delay);
             }
 

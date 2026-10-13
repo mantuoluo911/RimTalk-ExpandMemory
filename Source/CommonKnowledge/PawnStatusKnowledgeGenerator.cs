@@ -140,9 +140,8 @@ namespace RimTalk.Memory
                 }
             }
             
-            if (updatedCount > 0 && Prefs.DevMode && UnityEngine.Random.value < 0.1f)
+            if (updatedCount > 0)
             {
-                Log.Message($"[PawnStatus] Updated {updatedCount} colonist status knowledge entries");
             }
         }
 
@@ -173,12 +172,6 @@ namespace RimTalk.Memory
                 // ? v3.3.17: 直接从RimWorld记录计算加入时间（每次实时计算）
                 int joinTick = CalculateJoinTick(pawn, currentTick);
                 int daysInColony = CalculateDaysInColony(joinTick, currentTick);
-                
-                // 开发模式日志
-                if (Prefs.DevMode && UnityEngine.Random.value < 0.05f)
-                {
-                    Log.Message($"[PawnStatus] {pawn.LabelShort}: joinTick={joinTick}, currentTick={currentTick}, daysInColony={daysInColony}");
-                }
 
                 // 使用唯一标签
                 string statusTag = $"殖民者状态,{pawn.LabelShort}";
@@ -217,11 +210,6 @@ namespace RimTalk.Memory
                         {
                              existingEntry.tag = statusTag;
                         }
-                        
-                        if (Prefs.DevMode && UnityEngine.Random.value < 0.05f)
-                        {
-                            Log.Message($"[PawnStatus] Updated: {pawn.LabelShort} (days: {daysInColony}) -> {newContent}");
-                        }
                     }
                 }
                 else
@@ -239,11 +227,6 @@ namespace RimTalk.Memory
                     };
                     
                     library.AddEntry(newEntry);
-                    
-                    if (Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                    {
-                        Log.Message($"[PawnStatus] Created: {pawn.LabelShort} (days: {daysInColony}, importance: {defaultImportance:F2})");
-                    }
                 }
             }
             catch (Exception ex)
@@ -559,11 +542,6 @@ namespace RimTalk.Memory
                 
                 // 清除更新记录
                 lastUpdateTicks.Remove(pawn.thingIDNumber);
-                
-                if (Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                {
-                    Log.Message($"[PawnStatus] Removed status for {pawn.LabelShort}");
-                }
             }
         }
         
@@ -641,14 +619,10 @@ namespace RimTalk.Memory
                     if (pawn.Dead)
                     {
                         shouldRemove = true;
-                        if (Prefs.DevMode)
-                            Log.Message($"[PawnStatus] Removing dead pawn: {pawn.LabelShort}");
                     }
                     else if (pawn.Faction != Faction.OfPlayer)
                     {
                         shouldRemove = true;
-                        if (Prefs.DevMode)
-                            Log.Message($"[PawnStatus] Removing non-player pawn: {pawn.LabelShort}");
                     }
                 }
                 
@@ -662,12 +636,6 @@ namespace RimTalk.Memory
             foreach (var id in toRemove)
             {
                 lastUpdateTicks.Remove(id);
-            }
-            
-            // 日志输出
-            if (toRemove.Count > 0 && Prefs.DevMode)
-            {
-                Log.Message($"[PawnStatus] Cleaned up {toRemove.Count} update records");
             }
         }
     }

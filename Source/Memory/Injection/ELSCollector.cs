@@ -45,12 +45,6 @@ namespace RimTalk.Memory.Injection
             
             // 提取记忆实体
             result = scores.Select(s => s.Memory).ToList();
-            
-            if (Prefs.DevMode && result.Count > 0)
-            {
-                Log.Message($"[ELSCollector] Collected {result.Count} memories for {pawn.LabelShort}");
-            }
-            
             return result;
         }
         

@@ -53,10 +53,6 @@ namespace RimTalk.Memory.Injection
             var comp = pawn.TryGetComp<FourLayerMemoryComp>();
             if (comp == null || comp.ActiveMemories == null || comp.ActiveMemories.Count == 0)
             {
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[ABMCollector] {pawn?.LabelShort}: No ActiveMemories found (comp={comp != null}, count={comp?.ActiveMemories?.Count ?? 0})");
-                }
                 return result;
             }
 
@@ -73,12 +69,6 @@ namespace RimTalk.Memory.Injection
             
             int stackedLength = 0;
             int stackedCount = 0;
-            int skippedDuplicate = 0;
-            
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[ABMCollector] {pawn.LabelShort}: Processing {sortedList.Count} memories, cache size={RoundMemoryCache?.Count ?? 0}");
-            }
             
             foreach (var entry in sortedList)
             {
@@ -97,10 +87,6 @@ namespace RimTalk.Memory.Injection
                     // 跨 Pawn 去重
                     if (RoundMemoryCache != null && RoundMemoryCache.Contains(roundMemory))
                     {
-                        if (Prefs.DevMode)
-                        {
-                            Log.Message("[ABMCollector] Skipped duplicate RoundMemory");
-                        }
                         continue;
                     }
 
@@ -126,7 +112,6 @@ namespace RimTalk.Memory.Injection
         public static void ResetDuplicateCache()
         {
             RoundMemoryCache.Clear();
-            if (Prefs.DevMode) Log.Message($"[RoundMemory] 重置查重缓存");
         }
 
         /// <summary>

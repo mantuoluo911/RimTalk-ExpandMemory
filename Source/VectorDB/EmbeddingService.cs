@@ -88,19 +88,8 @@ namespace RimTalk.Memory.AI
             {
                 if (embeddingCache.TryGetValue(cacheKey, out float[] cachedVector))
                 {
-                    // ? v3.3.2: 只在DevMode下且随机1%概率输出，避免刷屏
-                    if (Prefs.DevMode && UnityEngine.Random.value < 0.01f)
-                    {
-                        Log.Message($"[Embedding] Cache hit ({embeddingCache.Count}/{MAX_CACHE_SIZE})");
-                    }
                     return cachedVector;
                 }
-            }
-            
-            // ? v3.3.2: 降低API调用日志频率
-            if (Prefs.DevMode && UnityEngine.Random.value < 0.2f)
-            {
-                Log.Message($"[Embedding] API call: {text.Substring(0, Math.Min(30, text.Length))}...");
             }
             
             // 调用API
@@ -120,10 +109,6 @@ namespace RimTalk.Memory.AI
                         {
                             embeddingCache.Remove(key);
                         }
-                        
-                        // ? v3.3.2: 降低日志输出
-                        if (Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                            Log.Message($"[Embedding] Cache cleanup: {toRemove.Count} removed, {embeddingCache.Count} remain");
                     }
                     
                     embeddingCache[cacheKey] = embedding;
@@ -242,13 +227,6 @@ namespace RimTalk.Memory.AI
                 return null;
             }
             
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[Embedding] Calling {provider} API...");
-                Log.Message($"[Embedding] API URL: {apiUrl}");
-                Log.Message($"[Embedding] API Key: {apiKey.Substring(0, Math.Min(10, apiKey.Length))}... (length: {apiKey.Length})");
-            }
-            
             var request = (HttpWebRequest)WebRequest.Create(apiUrl);
             request.Method = "POST";
             request.ContentType = "application/json";
@@ -258,11 +236,6 @@ namespace RimTalk.Memory.AI
             // 构建请求体
             string model = provider == "DeepSeek" ? "deepseek-embedding" : "text-embedding-ada-002";
             string jsonRequest = BuildOpenAIEmbeddingRequest(text, model);
-            
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[Embedding] Request body: {jsonRequest.Substring(0, Math.Min(200, jsonRequest.Length))}...");
-            }
             
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonRequest);
             request.ContentLength = bodyRaw.Length;
@@ -278,13 +251,6 @@ namespace RimTalk.Memory.AI
                 using (var streamReader = new System.IO.StreamReader(response.GetResponseStream()))
                 {
                     string responseText = await streamReader.ReadToEndAsync();
-                    
-                    if (Prefs.DevMode)
-                    {
-                        Log.Message($"[Embedding] Response status: {response.StatusCode}");
-                        Log.Message($"[Embedding] Response: {responseText.Substring(0, Math.Min(200, responseText.Length))}...");
-                    }
-                    
                     return ParseOpenAIEmbeddingResponse(responseText);
                 }
             }

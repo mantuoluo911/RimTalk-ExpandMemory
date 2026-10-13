@@ -104,10 +104,6 @@ namespace RimTalk.Memory.API
             // ⭐ v4.2: 如果缓存中有这个 Pawn 的结果，直接返回
             if (_pawnMemoryCache.TryGetValue(pawnId, out string cachedResult))
             {
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[Memory] Using cached result for {pawn.LabelShort}");
-                }
                 return cachedResult;
             }
 

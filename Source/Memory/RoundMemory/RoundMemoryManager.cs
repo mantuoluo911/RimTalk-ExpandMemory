@@ -81,8 +81,6 @@ namespace RimTalk.Memory
 
             string playerName = playerPawn?.LabelShort;
             Instance._playerDialogue = $"{(string.IsNullOrWhiteSpace(playerName) ? "Player" : playerName)}: {playerDialogue}";
-
-            Log.Message($"[RoundMemory] 成功捕获玩家发言");
         }
 
         /// <summary>
@@ -179,8 +177,6 @@ namespace RimTalk.Memory
             );
 
             LookRoundMemories();
-
-            Log.Message($"[RoundMemory] ExposeData for RoundMemory: count={_roundMemories.Count}; NextRoundMemoryId: {_nextRoundMemoryId}");
         }
 
         // 读写_roundMemories
@@ -275,8 +271,6 @@ namespace RimTalk.Memory
                     // ★ 核心动作：狸猫换太子
                     // 替换后，localRef 变成垃圾，等待 GC 回收
                     ABMs[i] = managerRef;
-
-                    if (Prefs.DevMode) Log.Message("[RoundMemory] ABM指针已修正");
                 }
             }
         }

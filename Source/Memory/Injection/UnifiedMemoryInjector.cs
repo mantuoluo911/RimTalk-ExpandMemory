@@ -41,11 +41,6 @@ namespace RimTalk.Memory.Injection
             // 【ABM全额注入】开关的作用由 maxABMInjectionRounds 配置项接管
             var abmList = ABMCollector.Collect(pawn, maxABMRounds);
             
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[UnifiedMemoryInjector] ABM collected: {abmList.Count}/{maxABMRounds} for {pawn.LabelShort}");
-            }
-            
             // Step 2: 计算剩余配额
             int remainingQuota = maxTotalMemories - abmList.Count;
             
@@ -54,11 +49,6 @@ namespace RimTalk.Memory.Injection
             if (remainingQuota > 0)
             {
                 elsList = ELSCollector.Collect(pawn, dialogueContext, remainingQuota);
-                
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[UnifiedMemoryInjector] ELS/CLPA collected: {elsList.Count}/{remainingQuota} for {pawn.LabelShort}");
-                }
             }
             
             // Step 4: 合并记忆列表
@@ -69,11 +59,6 @@ namespace RimTalk.Memory.Injection
             if (allMemories.Count == 0)
             {
                 return string.Empty;
-            }
-            
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[UnifiedMemoryInjector] Total memories: {allMemories.Count}/{maxTotalMemories} for {pawn.LabelShort}");
             }
             
             // Step 5: 统一编号格式化

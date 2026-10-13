@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 移除 OpenAIClient 与 Player2Client 中的 max_tokens 参数设置，避免长文本生成与思考模型输出被截断。
 - 重构 RimRingBuffer 环形缓冲区位运算逻辑，移除对 Unity.Mathematics 的依赖，确保在 1.7 新运行时下的兼容性与高性能。
 - 升级部署脚本，支持检测 .NET 10 SDK 并自动化联合编译部署 1.6 与 1.7 双版本。
+- 全面清理运行时高频日志输出，仅保留低频生命周期日志与异常警告，降低控制台噪音与性能开销。
 
 ### Fixed
 - 修复跟随 RimTalk 配置模式下因游标状态累加导致的连接死锁问题。

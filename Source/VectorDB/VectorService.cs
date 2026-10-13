@@ -281,7 +281,6 @@ namespace RimTalk.Memory.VectorDB
                             _loreVectors[id] = vector;
                             _contentHashes[id] = currentHash;
                         }
-                        Log.Message($"[RimTalk-ExpandMemory] VectorService: Updated vector for entry {id}");
                     }
                 }
                 catch (Exception ex)
@@ -301,7 +300,6 @@ namespace RimTalk.Memory.VectorDB
                     {
                         _loreVectors.Remove(id);
                         _contentHashes.Remove(id);
-                        Log.Message($"[RimTalk-ExpandMemory] VectorService: Removed vector for entry {id}");
                     }
                 }
             }
@@ -421,13 +419,6 @@ namespace RimTalk.Memory.VectorDB
                 };
 
                 string jsonBody = JsonConvert.SerializeObject(requestBody);
-                
-                // 详细日志：记录请求信息
-                Log.Message($"[RimTalk-ExpandMemory] VectorService: Sending request to {apiUrl}");
-                Log.Message($"[RimTalk-ExpandMemory] VectorService: Model: {model}");
-                Log.Message($"[RimTalk-ExpandMemory] VectorService: Input count: {texts.Count}");
-                Log.Message($"[RimTalk-ExpandMemory] VectorService: Request body: {jsonBody}");
-
                 var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
                 using (var request = new HttpRequestMessage(HttpMethod.Post, apiUrl))
@@ -436,9 +427,6 @@ namespace RimTalk.Memory.VectorDB
                     request.Content = content;
 
                     var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-                    
-                    // 详细日志：记录响应状态
-                    Log.Message($"[RimTalk-ExpandMemory] VectorService: Response status: {(int)response.StatusCode} {response.StatusCode}");
                     
                     if (!response.IsSuccessStatusCode)
                     {
@@ -449,8 +437,6 @@ namespace RimTalk.Memory.VectorDB
                     }
 
                     string responseString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    Log.Message($"[RimTalk-ExpandMemory] VectorService: Response received, length: {responseString.Length}");
-                    
                     JObject jsonResponse = JObject.Parse(responseString);
                     
                     var dataArray = jsonResponse["data"] as JArray;
@@ -470,7 +456,6 @@ namespace RimTalk.Memory.VectorDB
                         }
                     }
 
-                    Log.Message($"[RimTalk-ExpandMemory] VectorService: Successfully parsed {embeddings.Count} embeddings");
                     return embeddings;
                 }
             }
