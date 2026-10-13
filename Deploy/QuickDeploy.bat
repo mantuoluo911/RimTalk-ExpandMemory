@@ -7,9 +7,22 @@ echo ========================================
 echo.
 
 set "TARGET=D:\steam\steamapps\common\RimWorld\Mods\RimTalk-ExpandMemory"
+set "RIMTALK=D:\steam\steamapps\workshop\content\294100\3551203752"
+set "RIMWORLD=D:\steam\steamapps\common\RimWorld"
+
+rem 1.7 目标需要 .NET 10 SDK；PATH 上的 dotnet 可能只有旧版本，按存在性依次挑选
+set "DOTNET=dotnet"
+if exist "%USERPROFILE%\.dotnet\dotnet.exe" set "DOTNET=%USERPROFILE%\.dotnet\dotnet.exe"
+if exist "%DOTNET_ROOT%\dotnet.exe" set "DOTNET=%DOTNET_ROOT%\dotnet.exe"
 
 echo Compiling project...
-dotnet build RimTalk-ExpandMemory.csproj --configuration Release -p:RimTalkDir="D:\steam\steamapps\workshop\content\294100\3551203752"
+"%DOTNET%" build RimTalk-ExpandMemory.csproj --configuration Release -p:GameVersion=1.6 -p:RimTalkDir="%RIMTALK%"
+if errorlevel 1 (
+    echo Build failed!
+    pause
+    exit /b 1
+)
+"%DOTNET%" build RimTalk-ExpandMemory.csproj --configuration Release -p:GameVersion=1.7 -p:RimTalkDir="%RIMTALK%" -p:RimWorldDir="%RIMWORLD%"
 if errorlevel 1 (
     echo Build failed!
     pause
@@ -41,6 +54,12 @@ if exist "1.5" robocopy "1.5" "%TARGET%\1.5" /MIR /NFL /NDL /NJH /NJS /NP
 
 echo Copying 1.6 version files...
 if exist "1.6" robocopy "1.6" "%TARGET%\1.6" /MIR /NFL /NDL /NJH /NJS /NP
+
+echo Copying 1.7 version files...
+if exist "1.7" robocopy "1.7" "%TARGET%\1.7" /MIR /NFL /NDL /NJH /NJS /NP
+
+echo Copying LoadFolders.xml...
+if exist "LoadFolders.xml" copy /Y "LoadFolders.xml" "%TARGET%\LoadFolders.xml" >NUL
 
 echo.
 echo ========================================

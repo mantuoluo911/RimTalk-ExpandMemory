@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.3-beta] - 2026-10-13
+
+### Added
+- 支持 RimWorld 1.7：新增 net10.0 目标架构编译与程序集投放，新增 LoadFolders.xml 统一多版本加载路由。
+- 新增 AI 提供商支持：扩展 OpenRouter、Claude、Moonshot 预设端点及必需请求头。
+- 新增 Player2 网页授权接入：设置面板支持一键调起浏览器获取免费 Web API Key，支持授权状态感知与右键操作菜单，同步支持中英双语。
+- 新增 RimTalk 配置动态联动 Patch：当 RimTalk 保存配置或切换轮换端点时，自动同步重置记忆拓展的客户端调度池。
+- AIService 增加静态回退调度池，支持在主菜单等无存档环境下执行 AI 配置有效性校验。
+
+### Changed
+- 重构 AIClientFactory 为静态无状态工厂，消除游标越界造成的请求死锁问题。
+- 重构 ClientPool 客户端调度池，引入基于配置指纹的客户端缓存与热重建机制，支持请求失败时按候选链自动故障降级。
+- 优化 RimTalk 配置继承逻辑：全面适配 Simple 模式、Cloud 多端点轮换模式与 Local 本地推理模式。
+- 移除 OpenAIClient 与 Player2Client 中的 max_tokens 参数设置，避免长文本生成与思考模型输出被截断。
+- 重构 RimRingBuffer 环形缓冲区位运算逻辑，移除对 Unity.Mathematics 的依赖，确保在 1.7 新运行时下的兼容性与高性能。
+- 升级部署脚本，支持检测 .NET 10 SDK 并自动化联合编译部署 1.6 与 1.7 双版本。
+
+### Fixed
+- 修复跟随 RimTalk 配置模式下因游标状态累加导致的连接死锁问题。
+- 修复本地无 Key 离线推理端点被误判为无效配置的问题。
+- 规范化 OpenAI 兼容端点 URL 处理，补齐缺省路由与斜杠适配。
+
 ## [1.11.0] - 2026-08-03
 
 ### Added

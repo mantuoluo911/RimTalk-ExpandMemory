@@ -10,13 +10,24 @@
 
 		<ModFolderName>RimTalk-ExpandMemory</ModFolderName>
 
+		<!-- 1.7 起游戏换用自定义 CLR（.NET 10），旧版本仍为 .NET Framework 4.8 -->
+		<IsGame17 Condition=" '$(GameVersion)' == '1.7' ">true</IsGame17>
+
+		<!-- RimTalk 本体尚未提供 1.7 目录，1.7 下实际加载的仍是其 1.6 程序集 -->
+		<RimTalkGameVersion Condition=" '$(IsGame17)' == 'true' ">1.6</RimTalkGameVersion>
+		<RimTalkGameVersion Condition=" '$(RimTalkGameVersion)' == '' ">$(GameVersion)</RimTalkGameVersion>
+
+		<!-- Harmony 1.7 版找不到时（非本机默认布局）的回退目录 -->
+		<HarmonyFallbackDir Condition=" '$(HarmonyFallbackDir)' == '' ">..\..\workshop\content\294100\2009463077\1.7\Assemblies</HarmonyFallbackDir>
+
 		<!-- 编程配置项 -->
 		<RootNamespace>RimTalk.Memory</RootNamespace>
 		<LangVersion>latest</LangVersion>
 
 		<!-- 编译配置项 -->
 		<OutputType>Library</OutputType>
-		<TargetFramework>net48</TargetFramework>
+		<TargetFramework Condition=" '$(IsGame17)' == 'true' ">net10.0</TargetFramework>
+		<TargetFramework Condition=" '$(TargetFramework)' == '' ">net48</TargetFramework>
 		<Platforms>AnyCPU;x64</Platforms>
 		<PlatformTarget>x64</PlatformTarget>
 		<AssemblyName>RimTalkMemoryPatch</AssemblyName>
@@ -30,6 +41,11 @@
 		<OutputPath>$(GameVersion)/Assemblies</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
+		<!-- 1.7 无自带 Newtonsoft.Json，需随包投放；库工程默认不复制依赖，故显式打开。
+		     同时 net10 库不需要运行时依赖清单，避免在游戏目录留下无用的 deps.json -->
+		<CopyLocalLockFileAssemblies Condition=" '$(IsGame17)' == 'true' ">true</CopyLocalLockFileAssemblies>
+		<GenerateDependencyFile Condition=" '$(IsGame17)' == 'true' ">false</GenerateDependencyFile>
+
 		<!-- 杂项配置，VS开发的时候没用到过，应该是用于VScode的 -->
 		<ProvideCommandLineArgs>false</ProvideCommandLineArgs>
 		<LongPathsEnabled>true</LongPathsEnabled>
@@ -37,18 +53,49 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- NuGet包引用 -->
-		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" PrivateAssets="All" />
-		<PackageReference Include="Lib.Harmony.Ref" Version="2.*" PrivateAssets="All" />
+		<!-- NuGet包引用：1.5/1.6 走 Krafs 参考程序集；1.7 起游戏换用自定义 CLR，直接引用游戏目录的原版程序集 -->
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" PrivateAssets="All" Condition=" '$(IsGame17)' != 'true' " />
+		<PackageReference Include="Lib.Harmony.Ref" Version="2.*" PrivateAssets="All" Condition=" '$(IsGame17)' != 'true' " />
 		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="5.3.0" PrivateAssets="All" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 
-		<!-- 程序集引用 -->
-		<Reference Include="RimTalk" Condition="Exists('$(RimTalkDir)\$(GameVersion)\Assemblies\RimTalk.dll')">
-			<HintPath>$(RimTalkDir)\$(GameVersion)\Assemblies\RimTalk.dll</HintPath>
+		<!-- 1.7 原版程序集（net10.0） -->
+		<Reference Include="Assembly-CSharp" Condition=" '$(IsGame17)' == 'true' ">
+			<HintPath>$(RimWorldDir)\Assembly-CSharp.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
-		<Reference Include="System.Net.Http">
+		<Reference Include="UnityStubs" Condition=" '$(IsGame17)' == 'true' ">
+			<HintPath>$(RimWorldDir)\UnityStubs.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Waylith" Condition=" '$(IsGame17)' == 'true' ">
+			<HintPath>$(RimWorldDir)\Waylith.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Waylith.UnityCompat" Condition=" '$(IsGame17)' == 'true' ">
+			<HintPath>$(RimWorldDir)\Waylith.UnityCompat.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="RimWorldV17" Condition=" '$(IsGame17)' == 'true' ">
+			<HintPath>$(RimWorldDir)\RimWorld.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<!-- 1.7 的 Harmony 为 v3（net10），与 1.6 的 v2 不通用 -->
+		<Reference Include="0Harmony" Condition=" '$(IsGame17)' == 'true' AND Exists('$(RimWorldDir)\Mods\Harmony\1.7\Assemblies\0Harmony.dll')">
+			<HintPath>$(RimWorldDir)\Mods\Harmony\1.7\Assemblies\0Harmony.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="0Harmony" Condition=" '$(IsGame17)' == 'true' AND !Exists('$(RimWorldDir)\Mods\Harmony\1.7\Assemblies\0Harmony.dll')">
+			<HintPath>$(HarmonyFallbackDir)\0Harmony.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+
+		<!-- 程序集引用 -->
+		<Reference Include="RimTalk" Condition="Exists('$(RimTalkDir)\$(RimTalkGameVersion)\Assemblies\RimTalk.dll')">
+			<HintPath>$(RimTalkDir)\$(RimTalkGameVersion)\Assemblies\RimTalk.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="System.Net.Http" Condition=" '$(IsGame17)' != 'true' ">
 			<Private>False</Private>
 		</Reference>
 
@@ -75,7 +122,10 @@
 		<Exec Command="robocopy &quot;$(ProjectDir)About&quot; &quot;$(WinModPath)About&quot; /MIR" IgnoreExitCode="true" />
 		<Exec Command="robocopy &quot;$(ProjectDir)Languages&quot; &quot;$(WinModPath)Languages&quot; /MIR" IgnoreExitCode="true" />
 		<Exec Command="robocopy &quot;$(ProjectDir)Textures&quot; &quot;$(WinModPath)Textures&quot; /MIR" IgnoreExitCode="true" />
-		<Exec Command="robocopy &quot;$(ProjectDir)$(GameVersion)&quot; &quot;$(WinModPath)$(GameVersion)&quot; /MIR" IgnoreExitCode="true" />
+		<Exec Command="robocopy &quot;$(ProjectDir)1.5&quot; &quot;$(WinModPath)1.5&quot; /MIR" IgnoreExitCode="true" />
+		<Exec Command="robocopy &quot;$(ProjectDir)1.6&quot; &quot;$(WinModPath)1.6&quot; /MIR" IgnoreExitCode="true" />
+		<Exec Command="robocopy &quot;$(ProjectDir)1.7&quot; &quot;$(WinModPath)1.7&quot; /MIR" IgnoreExitCode="true" />
+		<Copy SourceFiles="$(ProjectDir)LoadFolders.xml" DestinationFolder="$(WinModPath)" SkipUnchangedFiles="true" ContinueOnError="WarnAndContinue" />
 		<Message Text="--- Windows deployment finished successfully ---" Importance="high" />
 	</Target>
 
@@ -88,7 +138,10 @@
 		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)About/&quot; &quot;$(DeployPath)About/&quot;" />
 		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)Languages/&quot; &quot;$(DeployPath)Languages/&quot;" />
 		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)Textures/&quot; &quot;$(DeployPath)Textures/&quot;" />
-		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)$(GameVersion)/&quot; &quot;$(DeployPath)$(GameVersion)/&quot;" />
+		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)1.5/&quot; &quot;$(DeployPath)1.5/&quot;" />
+		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)1.6/&quot; &quot;$(DeployPath)1.6/&quot;" />
+		<Exec Command="rsync -a --delete --checksum &quot;$(ProjectDir)1.7/&quot; &quot;$(DeployPath)1.7/&quot;" />
+		<Copy SourceFiles="$(ProjectDir)LoadFolders.xml" DestinationFolder="$(DeployPath)" SkipUnchangedFiles="true" ContinueOnError="WarnAndContinue" />
 		<Message Text="--- macOS deployment finished successfully ---" Importance="high" />
 	</Target>
 
