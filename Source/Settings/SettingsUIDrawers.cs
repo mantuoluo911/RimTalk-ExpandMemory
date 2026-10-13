@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using RimTalk.MemoryPatch;
+using RimTalk.Memory.AI.Integration;
 
 namespace RimTalk.Memory.UI
 {
@@ -137,7 +138,7 @@ namespace RimTalk.Memory.UI
             // 3. Model
             float modelStartX = middleStartX + middleZoneWidth + gap;
             if (config.Provider is AI.AIProvider.Player2)
-                Widgets.Label(new Rect(modelStartX, y, modelWidth, height), "通过本地客户端使用时不需要 key");
+                DrawPlayer2AuthButton(modelStartX, y, height, modelWidth, config);
             else
                 DrawModelTextInput(modelStartX, y, height, modelWidth, config);
 
@@ -219,7 +220,98 @@ namespace RimTalk.Memory.UI
         private static void DrawApiKeyInput(float x, float y, float height, float width, AI.ApiConfig config)
         {
             Rect rect = new Rect(x, y, width, height);
-            config.ApiKey = DrawTextFieldWithPlaceholder(rect, config.ApiKey, "RimTalk_Settings_PlaceholderApiKey".Translate());
+            string placeholder = config.Provider is AI.AIProvider.Player2
+                ? "RimTalk_Settings_PlaceholderPlayer2Key".Translate()
+                : "RimTalk_Settings_PlaceholderApiKey".Translate();
+            config.ApiKey = DrawTextFieldWithPlaceholder(rect, config.ApiKey, placeholder);
+        }
+
+        private static void DrawPlayer2AuthButton(float x, float y, float height, float width, AI.ApiConfig config)
+        {
+            Rect btnRect = new Rect(x, y, width, height);
+            bool isAuthenticating = Player2AuthHelper.IsAuthenticating;
+            string btnLabel = isAuthenticating
+                ? "RimTalk_Settings_Player2AuthWaiting".Translate()
+                : "RimTalk_Settings_Player2GetWebKey".Translate();
+
+            Color prevColor = GUI.color;
+            if (isAuthenticating)
+            {
+                GUI.color = new Color(0.95f, 0.85f, 0.45f);
+            }
+
+            if (Widgets.ButtonText(btnRect, btnLabel))
+            {
+                if (isAuthenticating)
+                {
+                    List<FloatMenuOption> authOptions =
+                    [
+                        new FloatMenuOption("RimTalk_Settings_Player2AuthReopen".Translate(), () =>
+                        {
+                            Player2AuthHelper.ReopenApprovalPage();
+                        }),
+                        new FloatMenuOption("RimTalk_Settings_Player2AuthCancel".Translate(), () =>
+                        {
+                            Player2AuthHelper.Cancel();
+                        }),
+                        new FloatMenuOption("RimTalk_Settings_Player2OpenWebsite".Translate(), () =>
+                        {
+                            Player2AuthHelper.OpenWebsite();
+                        })
+                    ];
+                    Find.WindowStack.Add(new FloatMenu(authOptions));
+                }
+                else
+                {
+                    Player2AuthHelper.StartAuth(key =>
+                    {
+                        config.ApiKey = key;
+                        if (global::RimTalk.Settings.Get() is { } rimTalkSettings)
+                        {
+                            rimTalkSettings.SimplePlayer2ApiKey = key;
+                            rimTalkSettings.Write();
+                        }
+                        RimTalkMemoryPatchMod.Settings.Write();
+                    });
+                }
+            }
+            GUI.color = prevColor;
+
+            // 右键菜单支持：随时可打开官网或重选
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 1 && Mouse.IsOver(btnRect))
+            {
+                Event.current.Use();
+                List<FloatMenuOption> menuOptions =
+                [
+                    new FloatMenuOption("RimTalk_Settings_Player2GetWebKey".Translate(), () =>
+                    {
+                        Player2AuthHelper.StartAuth(key =>
+                        {
+                            config.ApiKey = key;
+                            if (global::RimTalk.Settings.Get() is { } rimTalkSettings)
+                            {
+                                rimTalkSettings.SimplePlayer2ApiKey = key;
+                                rimTalkSettings.Write();
+                            }
+                            RimTalkMemoryPatchMod.Settings.Write();
+                        });
+                    }),
+                    new FloatMenuOption("RimTalk_Settings_Player2OpenWebsite".Translate(), () =>
+                    {
+                        Player2AuthHelper.OpenWebsite();
+                    })
+                ];
+                if (isAuthenticating)
+                {
+                    menuOptions.Add(new FloatMenuOption("RimTalk_Settings_Player2AuthCancel".Translate(), () =>
+                    {
+                        Player2AuthHelper.Cancel();
+                    }));
+                }
+                Find.WindowStack.Add(new FloatMenu(menuOptions));
+            }
+
+            TooltipHandler.TipRegion(btnRect, "RimTalk_Settings_Player2WebDesc".Translate());
         }
 
         private static void DrawBaseUrlInput(float x, float y, float height, float width, AI.ApiConfig config)

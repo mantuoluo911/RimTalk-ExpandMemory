@@ -324,6 +324,13 @@
   <RimTalk_Settings_DeepSeekCachingSavings>Can save ~50% in costs</RimTalk_Settings_DeepSeekCachingSavings>
   <RimTalk_Settings_Player2NoCaching>✗ Player2 does not support Prompt Caching</RimTalk_Settings_Player2NoCaching>
   <RimTalk_Settings_Player2LocalNoCache>Local client does not require caching</RimTalk_Settings_Player2LocalNoCache>
+  <RimTalk_Settings_Player2GetWebKey>Get Free API Key</RimTalk_Settings_Player2GetWebKey>
+  <RimTalk_Settings_Player2AuthWaiting>Waiting for approval...</RimTalk_Settings_Player2AuthWaiting>
+  <RimTalk_Settings_Player2AuthReopen>Re-open approval page</RimTalk_Settings_Player2AuthReopen>
+  <RimTalk_Settings_Player2AuthCancel>Cancel authorization</RimTalk_Settings_Player2AuthCancel>
+  <RimTalk_Settings_Player2OpenWebsite>Open Player2 Website</RimTalk_Settings_Player2OpenWebsite>
+  <RimTalk_Settings_Player2WebDesc>Get a free web API key without the desktop app. Optional when using the local app.</RimTalk_Settings_Player2WebDesc>
+  <RimTalk_Settings_PlaceholderPlayer2Key>Web Key (Optional for local app)</RimTalk_Settings_PlaceholderPlayer2Key>
   <RimTalk_Settings_GoogleNoCaching>✗ Google Gemini does not support Prompt Caching</RimTalk_Settings_GoogleNoCaching>
   <RimTalk_Settings_CustomNoCaching>✗ Custom API does not support Prompt Caching</RimTalk_Settings_CustomNoCaching>
   <RimTalk_Settings_CustomCachingDepends>Depends on your API implementation</RimTalk_Settings_CustomCachingDepends>

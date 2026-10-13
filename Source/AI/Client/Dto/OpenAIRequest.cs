@@ -14,9 +14,6 @@ namespace RimTalk.Memory.AI.Client.Dto
 
         [DataMember(Name = "temperature", EmitDefaultValue = false)]
         public double? Temperature { get; set; }
-
-        [DataMember(Name = "max_tokens", EmitDefaultValue = false)]
-        public int? MaxTokens { get; set; }
     }
 
     [DataContract]

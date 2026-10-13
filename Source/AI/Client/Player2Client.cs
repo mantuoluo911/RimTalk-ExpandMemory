@@ -41,11 +41,10 @@ public sealed class Player2Client : IAIClient
     /// </summary>
     public async Task<Payload> GetChatCompletionAsync(string prompt)
     {
-        // Player2 使用 OpenAI 风格 messages，但不发送 model。
+        // Player2 使用 OpenAI 风格 messages，但不发送 model（遵守全局禁设 max_tokens 铁律）
         string json = JsonUtil.SerializeToJson(new Player2Request
         {
-            Messages = [new() { Role = "user", Content = prompt ?? string.Empty }],
-            MaxTokens = RimTalkMemoryPatchMod.Settings.SummaryMaxTokens
+            Messages = [new() { Role = "user", Content = prompt ?? string.Empty }]
         });
 
         // 初始化 Payload；IsValid 只有解析到有效响应后才会设为 true。

@@ -328,6 +328,13 @@
   <RimTalk_Settings_DeepSeekCachingSavings>可节省约 50% 费用</RimTalk_Settings_DeepSeekCachingSavings>
   <RimTalk_Settings_Player2NoCaching>✗ Player2 不支持 Prompt Caching</RimTalk_Settings_Player2NoCaching>
   <RimTalk_Settings_Player2LocalNoCache>本地客户端无需缓存</RimTalk_Settings_Player2LocalNoCache>
+  <RimTalk_Settings_Player2GetWebKey>获取免费 API 密钥</RimTalk_Settings_Player2GetWebKey>
+  <RimTalk_Settings_Player2AuthWaiting>等待授权中...</RimTalk_Settings_Player2AuthWaiting>
+  <RimTalk_Settings_Player2AuthReopen>重新打开授权页面</RimTalk_Settings_Player2AuthReopen>
+  <RimTalk_Settings_Player2AuthCancel>取消授权</RimTalk_Settings_Player2AuthCancel>
+  <RimTalk_Settings_Player2OpenWebsite>打开 Player2 官网</RimTalk_Settings_Player2OpenWebsite>
+  <RimTalk_Settings_Player2WebDesc>无需桌面应用，直接在网页获取免费 API 密钥使用。通过本地客户端使用时可留空。</RimTalk_Settings_Player2WebDesc>
+  <RimTalk_Settings_PlaceholderPlayer2Key>网页 Key (本地客户端可留空)</RimTalk_Settings_PlaceholderPlayer2Key>
   <RimTalk_Settings_GoogleNoCaching>✗ Google Gemini 不支持 Prompt Caching</RimTalk_Settings_GoogleNoCaching>
   <RimTalk_Settings_CustomNoCaching>✗ 自定义API 不支持 Prompt Caching</RimTalk_Settings_CustomNoCaching>
   <RimTalk_Settings_CustomCachingDepends>取决于您的 API 实现</RimTalk_Settings_CustomCachingDepends>

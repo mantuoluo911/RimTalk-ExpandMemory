@@ -13,7 +13,11 @@ public enum AIProvider
     AlibabaIntl,
     AlibabaCN,
     Player2,
-    Custom
+    Custom,
+    // 新成员只允许追加到末尾：旧存档按既有序数值反序列化，插入会错位
+    OpenRouter,
+    Claude,
+    Moonshot
 }
 
 public static class AIProviderRegistry
@@ -28,11 +32,30 @@ public static class AIProviderRegistry
         { AIProvider.GLMCoding, "https://api.z.ai/api/coding/paas/v4/chat/completions" },
         { AIProvider.AlibabaIntl, "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions" },
         { AIProvider.AlibabaCN, "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions" },
-        { AIProvider.Player2, "https://api.player2.game/v1/chat/completions" }
+        { AIProvider.Player2, "https://api.player2.game/v1/chat/completions" },
+        { AIProvider.OpenRouter, "https://openrouter.ai/api/v1/chat/completions" },
+        { AIProvider.Claude, "https://api.anthropic.com/v1/chat/completions" },
+        { AIProvider.Moonshot, "https://api.moonshot.ai/v1/chat/completions" }
+    };
+
+    // 个别端点要求的额外请求头（与 RimTalk 本体的 AIProviderRegistry 保持一致）
+    private static readonly Dictionary<AIProvider, Dictionary<string, string>> _dictProviderToHeaders = new()
+    {
+        { AIProvider.OpenRouter, new Dictionary<string, string>
+        {
+            { "HTTP-Referer", "https://github.com/sanguodxj-byte/RimTalk-ExpandMemory" },
+            { "X-Title", "RimTalk-ExpandMemory" }
+        } },
+        { AIProvider.Claude, new Dictionary<string, string> { { "anthropic-version", "2023-06-01" } } }
     };
 
     public static string GetEndpointUrl(this AIProvider p)
     {
         return _dictProviderToURL.TryGetValue(p, out var url) ? url : null;
+    }
+
+    public static Dictionary<string, string> GetExtraHeaders(this AIProvider p)
+    {
+        return _dictProviderToHeaders.TryGetValue(p, out var headers) ? headers : null;
     }
 }

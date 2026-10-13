@@ -12,9 +12,6 @@ public sealed class Player2Request
 {
     [DataMember(Name = "messages")]
     public List<Player2Message> Messages { get; set; } = new();
-
-    [DataMember(Name = "max_tokens", EmitDefaultValue = false)]
-    public int? MaxTokens { get; set; }
 }
 
 [DataContract]

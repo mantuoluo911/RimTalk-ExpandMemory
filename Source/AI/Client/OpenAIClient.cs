@@ -2,6 +2,7 @@ using RimTalk.Memory.AI.Client.Dto;
 using RimTalk.Memory.Utils;
 using RimTalk.MemoryPatch;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
@@ -20,6 +21,7 @@ public class OpenAIClient : IAIClient
     private readonly Uri _url;
     private readonly string _apiKey;
     private readonly string _model;
+    private readonly Dictionary<string, string> _extraHeaders;
 
     private const string DefaultPath = "/v1/chat/completions";
 
@@ -36,14 +38,19 @@ public class OpenAIClient : IAIClient
     {
         // 如果 URL 不合法，则会向外层抛出异常
         // 正常管线中会提前校验，一般不会出现这种情况
-        _url = new Uri(config.URL, UriKind.Absolute);
-
-        // 如果只指定了基础 URL，则补充默认路径 /v1/chat/completions
-        if (_url.AbsolutePath == "/")
-            _url = new Uri(_url, DefaultPath);
+        // 对齐 RimTalk 的 FormatEndpointUrl：
+        // 根地址补默认路径；以 /v1 结尾的地址补 /chat/completions；其余原样使用
+        // TrimEnd 用数组重载：单 char 重载是 netstandard2.1 才有的 API，旧运行时没有
+        string baseUrl = config.URL.Trim().TrimEnd(new[] { '/' });
+        var uri = new Uri(baseUrl, UriKind.Absolute);
+        string path = uri.AbsolutePath.TrimEnd(new[] { '/' });
+        _url = path.Length == 0 ? new Uri(baseUrl + DefaultPath, UriKind.Absolute)
+            : path == "/v1" ? new Uri(baseUrl + "/chat/completions", UriKind.Absolute)
+            : uri;
 
         _apiKey = config.ApiKey;
-        _model = config.CustomModelName;
+        _model = config.EffectiveModelName;
+        _extraHeaders = config.Provider.GetExtraHeaders();
     }
 
 
@@ -59,7 +66,7 @@ public class OpenAIClient : IAIClient
         // 获取配置项
         bool isAILogEnabled = RimTalkMemoryPatchMod.Settings.EnableAILog;
 
-        // 构建请求 JSON
+        // 构建请求 JSON（严格遵守全局禁设 max_tokens 铁律）
         string jsonContent = BuildRequestJson(prompt);
 
         // 初始化 payload，此时其 IsValid 默认为 false
@@ -182,7 +189,7 @@ public class OpenAIClient : IAIClient
     /// </summary>
     public async Task<bool> ValidateAsync()
     {
-        string pingJson = BuildRequestJson("ping", maxTokens: 1);
+        string pingJson = BuildRequestJson("ping");
 
         try
         {
@@ -223,14 +230,13 @@ public class OpenAIClient : IAIClient
     // ====================================================================
 
     /// <summary>
-    /// 构建 OpenAI 兼容 chat/completions 请求 JSON
+    /// 构建 OpenAI 兼容 chat/completions 请求 JSON（严格遵守全局禁设 max_tokens 铁律）
     /// </summary>
-    private string BuildRequestJson(string prompt, int? maxTokens = null) =>
+    private string BuildRequestJson(string prompt) =>
          JsonUtil.SerializeToJson(new OpenAIRequest
          {
              Model = _model,
-             Messages = [new() { Role = "user", Content = prompt ?? string.Empty }],
-             MaxTokens = maxTokens ?? RimTalkMemoryPatchMod.Settings.SummaryMaxTokens
+             Messages = [new() { Role = "user", Content = prompt ?? string.Empty }]
          });
 
 
@@ -256,6 +262,11 @@ public class OpenAIClient : IAIClient
         // 某些 OpenAI 兼容端点可能不需要 API Key
         if (!string.IsNullOrEmpty(_apiKey))
             webRequest.SetRequestHeader("Authorization", $"Bearer {_apiKey}");
+
+        // 个别 provider 的必需/推荐请求头（如 Claude 的 anthropic-version）
+        if (_extraHeaders is { Count: > 0 })
+            foreach (var header in _extraHeaders)
+                webRequest.SetRequestHeader(header.Key, header.Value);
 
         // 初始化栈上状态机
         bool hasStartedReceiving = false;
