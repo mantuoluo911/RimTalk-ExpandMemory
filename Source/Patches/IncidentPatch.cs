@@ -117,11 +117,6 @@ namespace RimTalk.Memory.Patches
                 {
                     raidCheckActive = true;
                 }
-                
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[EventRecord] ?? Raid started: {eventText} (ID: {raidId})");
-                }
             }
         }
         
@@ -252,11 +247,6 @@ namespace RimTalk.Memory.Patches
                 entry.content = $"{raidInfo.initialText}，造成了严重损失";
                 entry.importance = 1.0f; // 最高重要性
             }
-            
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[EventRecord] ? Updated raid outcome: {entry.content}");
-            }
         }
         
         /// <summary>
@@ -297,11 +287,6 @@ namespace RimTalk.Memory.Patches
                 };
                 
                 library.AddEntry(entry);
-                
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[EventRecord] ? Created knowledge: {eventText} (importance: {importance:F2})");
-                }
             }
             
             return entry;

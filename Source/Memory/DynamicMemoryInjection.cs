@@ -61,14 +61,6 @@ namespace RimTalk.Memory
             var analysis = SceneAnalyzer.AnalyzeScene(context);
             DynamicWeights sceneWeights = SceneAnalyzer.GetDynamicWeights(sceneType, analysis.Confidence);
 
-            // 开发模式日志
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[Memory Injection] Scene: {SceneAnalyzer.GetSceneDisplayName(sceneType)}");
-                Log.Message($"[Memory Injection] Confidence: {analysis.Confidence:P0}");
-                Log.Message($"[Memory Injection] Weights: {sceneWeights}");
-            }
-
             // 提取上下文关键词
             List<string> contextKeywords = ExtractKeywords(context);
 
@@ -111,10 +103,6 @@ namespace RimTalk.Memory
             // 如果没有记忆达到阈值，返回null
             if (scoredMemories.Count == 0)
             {
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[Memory Injection] No memories met threshold ({threshold:F2}), returning null");
-                }
                 return null;
             }
 

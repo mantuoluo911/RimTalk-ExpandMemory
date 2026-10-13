@@ -172,12 +172,6 @@ namespace RimTalk.Memory
                     }
                 }
             }
-
-            // 开发模式日志（每10次更新才输出一次）
-            if (Prefs.DevMode && updatedCount > 0 && UnityEngine.Random.value < 0.1f)
-            {
-                Log.Message($"[RimTalk Memory] Updated {updatedCount} event knowledge time prefixes");
-            }
         }
 
         /// <summary>

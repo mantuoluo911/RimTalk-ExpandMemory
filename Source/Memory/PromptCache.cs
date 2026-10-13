@@ -136,12 +136,6 @@ namespace RimTalk.Memory
                     entry.useCount++;
                     totalHits++;
                     needsRegeneration = false;
-                    
-                    if (Prefs.DevMode)
-                    {
-                        Log.Message($"[Prompt Cache] ?? HIT: {pawn.LabelShort} (saved ~{EstimateComputeCost()}ms)");
-                    }
-                    
                     return entry;
                 }
                 else
@@ -149,11 +143,6 @@ namespace RimTalk.Memory
                     // 缓存失效
                     cache.Remove(cacheKey);
                     totalInvalidations++;
-                    
-                    if (Prefs.DevMode)
-                    {
-                        Log.Message($"[Prompt Cache] ?? INVALIDATED: {pawn.LabelShort} (memory/knowledge changed)");
-                    }
                 }
             }
             
@@ -183,11 +172,6 @@ namespace RimTalk.Memory
             {
                 EvictLRU();
             }
-            
-            if (Prefs.DevMode)
-            {
-                Log.Message($"[Prompt Cache] ?? CACHED: {pawn.LabelShort} (total: {cache.Count}/{MaxCacheSize})");
-            }
         }
         
         /// <summary>
@@ -202,11 +186,6 @@ namespace RimTalk.Memory
             foreach (var key in keysToRemove)
             {
                 cache.Remove(key);
-            }
-            
-            if (keysToRemove.Count > 0 && Prefs.DevMode)
-            {
-                Log.Message($"[Prompt Cache] ??? Invalidated {keysToRemove.Count} entries for {pawn.LabelShort}");
             }
         }
         
@@ -240,11 +219,6 @@ namespace RimTalk.Memory
             foreach (var key in expiredKeys)
             {
                 cache.Remove(key);
-            }
-            
-            if (expiredKeys.Count > 0 && Prefs.DevMode)
-            {
-                Log.Message($"[Prompt Cache] ?? Cleaned {expiredKeys.Count} expired entries");
             }
         }
         
@@ -312,11 +286,6 @@ namespace RimTalk.Memory
             if (lruKey != null)
             {
                 cache.Remove(lruKey);
-                
-                if (Prefs.DevMode)
-                {
-                    Log.Message($"[Prompt Cache] ??? EVICTED LRU entry");
-                }
             }
         }
         

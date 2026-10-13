@@ -59,12 +59,6 @@ namespace RimTalk.Memory
                 
                 if (semanticScored != null && semanticScored.Count > 0)
                 {
-                    // ? 减少成功日志
-                    if (Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                    {
-                        Log.Message($"[Semantic Scoring] Success: {semanticScored.Count} memories");
-                    }
-                    
                     return semanticScored;
                 }
             }
@@ -178,12 +172,6 @@ namespace RimTalk.Memory
                 
                 if (semanticScored != null && semanticScored.Count > 0)
                 {
-                    // ? 减少日志
-                    if (Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                    {
-                        Log.Message($"[Semantic Scoring] Success: {semanticScored.Count} knowledge");
-                    }
-                    
                     return semanticScored;
                 }
             }
@@ -268,14 +256,7 @@ namespace RimTalk.Memory
                 
                 // 批量生成嵌入（限制数量）
                 var toBatch = importantMemories.Take(20).Select(m => m.Content).ToList();
-                
-                if (Prefs.DevMode)
-                    Log.Message($"[Semantic Scoring] Prewarming {toBatch.Count} memory embeddings...");
-                
                 await AI.EmbeddingService.GetEmbeddingsBatchAsync(toBatch);
-                
-                if (Prefs.DevMode)
-                    Log.Message($"[Semantic Scoring] Prewarm complete");
             }
             catch (Exception ex)
             {

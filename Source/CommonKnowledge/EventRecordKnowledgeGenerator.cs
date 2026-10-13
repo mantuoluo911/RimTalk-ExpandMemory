@@ -168,12 +168,6 @@ namespace RimTalk.Memory
                                 
                                 library.AddEntry(entry);
                                 processedCount++;
-                                
-                                // ⭐ v3.3.2: 减少日志量 - 仅DevMode且10%概率
-                                if (Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                                {
-                                    Log.Message($"[EventRecord] Created event knowledge: {eventText.Substring(0, Math.Min(50, eventText.Length))}...");
-                                }
                             }
                         }
                     }
@@ -185,12 +179,6 @@ namespace RimTalk.Memory
                             Log.Warning($"[EventRecord] Error processing log entry: {ex.Message}");
                         }
                     }
-                }
-                
-                // ⭐ v3.3.2: 减少日志量 - 仅DevMode且10%概率
-                if (processedCount > 0 && Prefs.DevMode && UnityEngine.Random.value < 0.1f)
-                {
-                    Log.Message($"[EventRecord] Scanned {scannedCount} entries, processed {processedCount} new events (total: {totalCount})");
                 }
             }
             catch (Exception ex)
@@ -621,12 +609,6 @@ namespace RimTalk.Memory
                     // 更新时间前缀
                     entry.UpdateEventTimePrefix(currentTick);
                     updatedCount++;
-                }
-                
-                // ? 日志：记录更新操作（仅DevMode且低频率）
-                if (updatedCount > 0 && Prefs.DevMode && UnityEngine.Random.value < 0.05f)
-                {
-                    Log.Message($"[EventRecord] Updated time prefix for {updatedCount} event knowledge entries");
                 }
             }
             catch (Exception ex)

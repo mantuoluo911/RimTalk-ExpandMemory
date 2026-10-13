@@ -175,10 +175,6 @@ namespace RimTalk.Memory.Patches
                                 }
                                 
                                 vectorContent = vectorSb.ToString();
-                                
-                                // ⭐ 输出匹配结果日志（包含余弦相似度）
-                                var similarities = string.Join(", ", finalResults.Select(r => $"{r.Entry.tag}:{r.Similarity:F3}"));
-                                Log.Message($"[RimTalk Memory] Vector matched {finalResults.Count} knowledge entries. Similarities: {similarities}");
                             }
                         }
                     }
