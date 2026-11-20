@@ -47,6 +47,10 @@
   <RimTalk.Memory.UI.TabWindow.NotPinned>未固定</RimTalk.Memory.UI.TabWindow.NotPinned>
   <RimTalk.Memory.UI.TabWindow.NotSummarized>未总结</RimTalk.Memory.UI.TabWindow.NotSummarized>
   <RimTalk.Memory.UI.TabWindow.Notes>备注： </RimTalk.Memory.UI.TabWindow.Notes>
+  <RimTalk.Memory.UI.TabWindow.TimeYear>年</RimTalk.Memory.UI.TabWindow.TimeYear>
+  <RimTalk.Memory.UI.TabWindow.TimeQuadrum>象</RimTalk.Memory.UI.TabWindow.TimeQuadrum>
+  <RimTalk.Memory.UI.TabWindow.TimeDay>日</RimTalk.Memory.UI.TabWindow.TimeDay>
+  <RimTalk.Memory.UI.TabWindow.TimeHour>时</RimTalk.Memory.UI.TabWindow.TimeHour>
   <RimTalk.Memory.UI.TabWindow.NotesLabel>备注</RimTalk.Memory.UI.TabWindow.NotesLabel>
   <RimTalk.Memory.UI.TabWindow.OpenImportFolder>打开导入文件夹</RimTalk.Memory.UI.TabWindow.OpenImportFolder>
   <RimTalk.Memory.UI.TabWindow.OperationGuide>操作指南</RimTalk.Memory.UI.TabWindow.OperationGuide>
