@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 因项目存在频繁变基，SHA 仅供参考。
 
+## [1.17.0] - 2026-11-19
+
+### Added
+- 记忆主面板右上角新增自动总结一键开关。 (`d204c68`)
+
+### Changed
+- AI 请求失败时总是会打印详细日志，同时优化了请求失败提示文本。 (`de2037d`)
+- AI 请求失败时不再播放提示音。 (`39903fa`)
+
+### Fixed
+- 修复手动创建 CLPA 时新建记忆不显示的问题。 (`2ca6c3d`)
+- 修复记忆创建窗口"固定此记忆"按钮的位置偏移问题。 (`bd752e0`)
+
 ## [1.16.2] - 2026-11-06
 
 ### Added
@@ -286,6 +299,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 接手项目，基于前作代码开始后续维护与迭代。
 
+[1.17.0]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.16.2...v1.17.0
 [1.16.2]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.16.1...v1.16.2
 [1.16.1]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.16.0...v1.16.1
 [1.16.0]: https://github.com/mantuoluo911/RimTalk-ExpandMemory/compare/v1.15.1...v1.16.0
