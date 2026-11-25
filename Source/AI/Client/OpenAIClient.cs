@@ -40,6 +40,10 @@ public class OpenAIClient : IAIClient
         // 正常管线中会提前校验，一般不会出现这种情况
         _url = new Uri(config.URL, UriKind.Absolute);
 
+        // 少数情况下"localhost"会无效：Windows 上它优先解析为 IPv6 "::1"，而本地服务可能只监听 IPv4，故强制替换为"127.0.0.1"
+        if (string.Equals(_url.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            _url = new UriBuilder(_url) { Host = "127.0.0.1" }.Uri;
+
         // 如果只指定了基础 URL 或 v1，则补充默认路径 /v1/chat/completions
         string absPath = _url.AbsolutePath;
         if (absPath is "/" or "/v1" or "/v1/")
