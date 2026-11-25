@@ -67,8 +67,6 @@ public class JobMemoryCapturer
             desc = defName switch
             {
                 _ when defName.Contains("Haul") => "搬运",
-                _ when defName.Contains("Harvest") => "收获",
-                _ when defName.Contains("CutPlant") => "割除",
                 _ when defName.Contains("Mine") => "采矿",
                 _ when defName.Contains("Repair") => "修理",
                 _ when defName.Contains("Milk") => "挤奶",
@@ -88,7 +86,9 @@ public class JobMemoryCapturer
                 _ when defName.Contains("Sow")
                 || defName.Contains("Replant")
                 || defName.Contains("PlantSeed")
-                => "种植",
+                || defName.Contains("Harvest")
+                || defName.Contains("CutPlant")
+                => "种植/收获",
 
                 _ when defName.Contains("Clean")
                 || defName.Contains("Clear")
